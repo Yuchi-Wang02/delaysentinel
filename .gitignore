@@ -1,0 +1,39 @@
+# weights, caches and anything large
+models/
+models--*/
+*.safetensors
+*.gguf
+*.bin
+*.pt
+*.pth
+checkpoint-*/
+llama.cpp/
+hf_cache/
+.cache/
+
+# data that is not part of the frozen split
+data/all.jsonl
+data/train_seed*.jsonl
+data/test_seed*.jsonl
+home_assistant_*.jsonl
+
+# secrets
+kaggle.json
+*.token
+.env
+.hf_token
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# editors
+.idea/
+.vscode/

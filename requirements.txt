@@ -1,0 +1,11 @@
+# Full environment used for results/eval.json (Windows 11, RTX 5070 Ti, CUDA 12.8).
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+scipy>=1.11
+matplotlib>=3.8
+torch>=2.3
+transformers==4.55.4
+accelerate>=1.0
+huggingface_hub>=0.34,<1.0
+pytest>=8

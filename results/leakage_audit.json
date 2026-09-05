@@ -1,0 +1,36 @@
+{
+ "n_rows": 1000,
+ "target": "Logistics_Delay",
+ "positive_rate": 0.566,
+ "pure_conditions": [
+  {
+   "condition": "Shipment_Status == \"Delayed\"",
+   "column": "Shipment_Status",
+   "rows": 350,
+   "positives": 350,
+   "purity": 1.0,
+   "pure_label": 1
+  },
+  {
+   "condition": "Traffic_Status == \"Heavy\"",
+   "column": "Traffic_Status",
+   "rows": 327,
+   "positives": 327,
+   "purity": 1.0,
+   "pure_label": 1
+  }
+ ],
+ "greedy_or_rule": {
+  "rule": "Shipment_Status == \"Delayed\" OR Traffic_Status == \"Heavy\"",
+  "n_conditions": 2,
+  "accuracy": 1.0,
+  "mismatches": 0,
+  "positives_covered": 566,
+  "positives_total": 566
+ },
+ "depth2_tree": {
+  "depth": 2,
+  "cv_accuracy_mean": 1.0,
+  "cv_accuracy_min": 1.0
+ }
+}

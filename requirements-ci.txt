@@ -1,0 +1,6 @@
+# CPU-only subset for CI: tests, baselines and the number check (no model download).
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+scipy>=1.11
+pytest>=8

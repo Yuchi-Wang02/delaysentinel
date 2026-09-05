@@ -1,0 +1,1064 @@
+{
+ "provenance": {
+  "package_version": "1.0.0",
+  "command_line": "C:\\Users\\yuchi\\PycharmProjects\\delaysentinel\\src\\delaysentinel\\eval.py --model C:/Users/yuchi/PycharmProjects/SC904/models/VCU-test --hub-model-id Yuchiwang02/Llama-3.2-1B-DelaySentinel --out results/eval.json --predictions-out results/test_predictions.csv --seed 0",
+  "timestamp_utc": "2026-09-05T20:48:21+00:00",
+  "git_commit": null,
+  "seed": 0,
+  "csv_sha256": "d9c91a6bd89d9eeb4e5656b1c83df62b15da69d0bbea45afa317379b1e518762",
+  "train_jsonl_sha256": "0c0132648ffa6e7bf5157afd29f126f0bd59b0d3aa4a8a51fb1f401d5d9aa6b8",
+  "test_jsonl_sha256": "a2f53527ce94208deded0f1022e9a8eb75d580434e5b5d323789172ff4277cfe",
+  "model_id": "C:/Users/yuchi/PycharmProjects/SC904/models/VCU-test",
+  "hub_model_id": "Yuchiwang02/Llama-3.2-1B-DelaySentinel",
+  "model_safetensors_sha256": "ffc509c65c539157905ccc5e469b1b37e30fe816aa9130477f57f0a3dfc2cd47",
+  "weights_note": "compare model_safetensors_sha256 with the LFS hash shown on the Hub file page to confirm the evaluated bytes",
+  "total_seconds": 68.6
+ },
+ "split": {
+  "train_n": 800,
+  "test_n": 200,
+  "train_pos_rate": 0.5625,
+  "test_pos_rate": 0.58,
+  "test_pos": 116,
+  "test_neg": 84,
+  "prevalence_line": "test 116/200 = 0.580",
+  "test_prompts_also_in_train": 0,
+  "split_method": "random.shuffle without a seed, 80/20, generated once in Sept 2025; not reproducible"
+ },
+ "label_rule": {
+  "rule": "Logistics_Delay = 1  iff  Shipment_Status == \"Delayed\"  OR  Traffic_Status == \"Heavy\"",
+  "shipment_status_delayed": {
+   "rows": 350,
+   "delayed": 350
+  },
+  "traffic_status_heavy": {
+   "rows": 327,
+   "delayed": 327
+  },
+  "neither": {
+   "rows": 434,
+   "delayed": 0
+  },
+  "mismatches": 0,
+  "n": 1000,
+  "csv_rows": 1000,
+  "label_counts": {
+   "delayed": 566,
+   "not_delayed": 434
+  },
+  "category_counts": {
+   "Asset_ID": {
+    "Truck_8": 109,
+    "Truck_4": 107,
+    "Truck_2": 105,
+    "Truck_10": 105,
+    "Truck_6": 103,
+    "Truck_7": 102,
+    "Truck_9": 94,
+    "Truck_3": 93,
+    "Truck_5": 93,
+    "Truck_1": 89
+   },
+   "Shipment_Status": {
+    "Delayed": 350,
+    "Delivered": 338,
+    "In Transit": 312
+   },
+   "Traffic_Status": {
+    "Detour": 345,
+    "Clear": 328,
+    "Heavy": 327
+   },
+   "Logistics_Delay_Reason": {
+    "Weather": 267,
+    "None": 263,
+    "Traffic": 236,
+    "Mechanical Failure": 234
+   }
+  },
+  "reason_present_by_label": {
+   "delayed": 419,
+   "not_delayed": 318
+  },
+  "rule_on_test_split": {
+   "n": 200,
+   "pos_rate": 0.58,
+   "acc": 1.0,
+   "acc_ci_wilson": [
+    0.9812,
+    1.0
+   ],
+   "acc_ci_clopper_pearson": [
+    0.9817,
+    1.0
+   ],
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0,
+   "confusion": [
+    [
+     84,
+     0
+    ],
+    [
+     0,
+     116
+    ]
+   ],
+   "errors": 0,
+   "f1_ci_bootstrap": "degenerate (zero errors)"
+  }
+ },
+ "baselines_split_v0": {
+  "rule_delayed_or_heavy": {
+   "n": 200,
+   "pos_rate": 0.58,
+   "acc": 1.0,
+   "acc_ci_wilson": [
+    0.9812,
+    1.0
+   ],
+   "acc_ci_clopper_pearson": [
+    0.9817,
+    1.0
+   ],
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0,
+   "confusion": [
+    [
+     84,
+     0
+    ],
+    [
+     0,
+     116
+    ]
+   ],
+   "errors": 0,
+   "f1_ci_bootstrap": "degenerate (zero errors)"
+  },
+  "all_positive": {
+   "n": 200,
+   "pos_rate": 0.58,
+   "acc": 0.58,
+   "acc_ci_wilson": [
+    0.5107,
+    0.6463
+   ],
+   "acc_ci_clopper_pearson": [
+    0.5083,
+    0.6493
+   ],
+   "precision": 0.58,
+   "recall": 1.0,
+   "f1": 0.7342,
+   "confusion": [
+    [
+     0,
+     84
+    ],
+    [
+     0,
+     116
+    ]
+   ],
+   "errors": 84,
+   "f1_ci_bootstrap": [
+    0.6799,
+    0.7842
+   ]
+  },
+  "decision_tree_depth2": {
+   "n": 200,
+   "pos_rate": 0.58,
+   "acc": 1.0,
+   "acc_ci_wilson": [
+    0.9812,
+    1.0
+   ],
+   "acc_ci_clopper_pearson": [
+    0.9817,
+    1.0
+   ],
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0,
+   "confusion": [
+    [
+     84,
+     0
+    ],
+    [
+     0,
+     116
+    ]
+   ],
+   "errors": 0,
+   "f1_ci_bootstrap": "degenerate (zero errors)",
+   "auroc": 1.0,
+   "auroc_note": "scores are effectively hard labels; AUROC carries no ranking information",
+   "auroc_ci_bootstrap": [
+    1.0,
+    1.0
+   ],
+   "tree_rules": "|--- cat__Shipment_Status_Delayed <= 0.50\n|   |--- cat__Traffic_Status_Heavy <= 0.50\n|   |   |--- weights: [350.00, 0.00] class: 0\n|   |--- cat__Traffic_Status_Heavy >  0.50\n|   |   |--- weights: [0.00, 173.00] class: 1\n|--- cat__Shipment_Status_Delayed >  0.50\n|   |--- weights: [0.00, 277.00] class: 1\n"
+  },
+  "logistic_regression": {
+   "n": 200,
+   "pos_rate": 0.58,
+   "acc": 1.0,
+   "acc_ci_wilson": [
+    0.9812,
+    1.0
+   ],
+   "acc_ci_clopper_pearson": [
+    0.9817,
+    1.0
+   ],
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0,
+   "confusion": [
+    [
+     84,
+     0
+    ],
+    [
+     0,
+     116
+    ]
+   ],
+   "errors": 0,
+   "f1_ci_bootstrap": "degenerate (zero errors)",
+   "auroc": 1.0,
+   "auroc_ci_bootstrap": [
+    1.0,
+    1.0
+   ]
+  },
+  "gradient_boosting": {
+   "n": 200,
+   "pos_rate": 0.58,
+   "acc": 1.0,
+   "acc_ci_wilson": [
+    0.9812,
+    1.0
+   ],
+   "acc_ci_clopper_pearson": [
+    0.9817,
+    1.0
+   ],
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0,
+   "confusion": [
+    [
+     84,
+     0
+    ],
+    [
+     0,
+     116
+    ]
+   ],
+   "errors": 0,
+   "f1_ci_bootstrap": "degenerate (zero errors)",
+   "auroc": 1.0,
+   "auroc_note": "scores are effectively hard labels; AUROC carries no ranking information",
+   "auroc_ci_bootstrap": [
+    1.0,
+    1.0
+   ]
+  },
+  "gradient_boosting_without_rule_fields": {
+   "n": 200,
+   "pos_rate": 0.58,
+   "acc": 0.5,
+   "acc_ci_wilson": [
+    0.4314,
+    0.5686
+   ],
+   "acc_ci_clopper_pearson": [
+    0.4287,
+    0.5713
+   ],
+   "precision": 0.5556,
+   "recall": 0.6897,
+   "f1": 0.6154,
+   "confusion": [
+    [
+     20,
+     64
+    ],
+    [
+     36,
+     80
+    ]
+   ],
+   "errors": 100,
+   "f1_ci_bootstrap": [
+    0.5432,
+    0.6813
+   ],
+   "auroc": 0.4516,
+   "auroc_ci_bootstrap": [
+    0.3709,
+    0.528
+   ]
+  },
+  "feature_encoding": {
+   "dropped": [
+    "Timestamp"
+   ],
+   "numeric_standardized": [
+    "Latitude",
+    "Longitude",
+    "Inventory_Level",
+    "Temperature",
+    "Humidity",
+    "Waiting_Time",
+    "User_Transaction_Amount",
+    "User_Purchase_Frequency",
+    "Asset_Utilization",
+    "Demand_Forecast"
+   ],
+   "one_hot": [
+    "Asset_ID",
+    "Shipment_Status",
+    "Traffic_Status",
+    "Logistics_Delay_Reason"
+   ],
+   "missing_reason": "kept as its own category 'None', exactly as it appears in the prompt",
+   "without_rule_fields_variant": "same, minus every one-hot column derived from ['Shipment_Status', 'Traffic_Status']"
+  }
+ },
+ "baselines_cv": {
+  "scheme": "RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=0)",
+  "applies_to": "sklearn baselines only (the fine-tuned model has seen the training rows)",
+  "n_rows": 1000,
+  "rule_delayed_or_heavy": {
+   "acc_mean": 1.0,
+   "acc_min": 1.0,
+   "acc_max": 1.0
+  },
+  "all_positive": {
+   "acc_mean": 0.566,
+   "acc_min": 0.565,
+   "acc_max": 0.57
+  },
+  "decision_tree_depth2": {
+   "acc_mean": 1.0,
+   "acc_min": 1.0,
+   "acc_max": 1.0,
+   "auroc_mean": 1.0,
+   "auroc_min": 1.0,
+   "auroc_max": 1.0
+  },
+  "logistic_regression": {
+   "acc_mean": 1.0,
+   "acc_min": 1.0,
+   "acc_max": 1.0,
+   "auroc_mean": 1.0,
+   "auroc_min": 1.0,
+   "auroc_max": 1.0
+  },
+  "gradient_boosting": {
+   "acc_mean": 1.0,
+   "acc_min": 1.0,
+   "acc_max": 1.0,
+   "auroc_mean": 1.0,
+   "auroc_min": 1.0,
+   "auroc_max": 1.0
+  },
+  "gradient_boosting_without_rule_fields": {
+   "acc_mean": 0.4963,
+   "acc_min": 0.46,
+   "acc_max": 0.545,
+   "auroc_mean": 0.4626,
+   "auroc_min": 0.4088,
+   "auroc_max": 0.5106
+  }
+ },
+ "model": {
+  "model_id": "C:/Users/yuchi/PycharmProjects/SC904/models/VCU-test",
+  "params": 1235814400,
+  "dtype": "bf16",
+  "device": "cuda",
+  "cuda_device_name": "NVIDIA GeForce RTX 5070 Ti",
+  "tokenizer_len": 128256,
+  "pad_token": "<|finetune_right_pad_id|>",
+  "pad_token_id": 128004,
+  "torch_version": "2.8.0+cu128",
+  "transformers_version": "4.55.4",
+  "python_version": "3.10.18",
+  "load_seconds": 1.7,
+  "score_available": true,
+  "label_token_ids": {
+   "0": 15,
+   "1": 16
+  },
+  "decoding": {
+   "do_sample": false,
+   "max_new_tokens": 8,
+   "batch_size": 16
+  },
+  "test_inference_seconds": 3.16,
+  "unparsable": 0,
+  "raw_output_examples": [
+   "Logistics_Delay: 0",
+   "Logistics_Delay: 0",
+   "Logistics_Delay: 1",
+   "Logistics_Delay: 0",
+   "Logistics_Delay: 0"
+  ],
+  "distinct_raw_outputs": [
+   "Logistics_Delay: 0",
+   "Logistics_Delay: 1"
+  ],
+  "test_metrics_greedy": {
+   "n": 200,
+   "pos_rate": 0.58,
+   "acc": 1.0,
+   "acc_ci_wilson": [
+    0.9812,
+    1.0
+   ],
+   "acc_ci_clopper_pearson": [
+    0.9817,
+    1.0
+   ],
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0,
+   "confusion": [
+    [
+     84,
+     0
+    ],
+    [
+     0,
+     116
+    ]
+   ],
+   "errors": 0,
+   "f1_ci_bootstrap": "degenerate (zero errors)"
+  },
+  "agreement_with_rule": 1.0,
+  "error_rows": [],
+  "teacher_forced_diagnostics": {
+   "note": "hard-label model; scores are saturated and carry no ranking information; not a headline metric",
+   "auroc": 1.0,
+   "auroc_note": null,
+   "margin_min": -20.625,
+   "margin_max": 13.875,
+   "margin_abs_median": 13.375,
+   "p1_min": 0.0,
+   "p1_max": 0.999999,
+   "top_token_is_label_rate": 1.0
+  },
+  "sampling_check": {
+   "config": {
+    "do_sample": true,
+    "temperature": 0.6,
+    "top_p": 0.9
+   },
+   "per_seed": {
+    "0": {
+     "acc": 1.0,
+     "unparsable": 0
+    },
+    "1": {
+     "acc": 1.0,
+     "unparsable": 0
+    },
+    "2": {
+     "acc": 1.0,
+     "unparsable": 0
+    }
+   },
+   "rows_changed_between_consecutive_seeds": 0
+  }
+ },
+ "counterfactual_probe": {
+  "status_Delayed_to_InTransit": {
+   "group": "counterfactual",
+   "description": "positives that are positive only because Shipment_Status == Delayed; set it to In Transit",
+   "n": 50,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": 0,
+   "expected_kind": "flip_to_0",
+   "matches_expected": 50,
+   "acc_vs_original_gold": 0.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "traffic_Heavy_to_Clear": {
+   "group": "counterfactual",
+   "description": "positives that are positive only because Traffic_Status == Heavy; set it to Clear",
+   "n": 43,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": 0,
+   "expected_kind": "flip_to_0",
+   "matches_expected": 43,
+   "acc_vs_original_gold": 0.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "negatives_traffic_to_Heavy": {
+   "group": "counterfactual",
+   "description": "all negatives; set Traffic_Status to Heavy",
+   "n": 84,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 84
+   },
+   "pred_pos_rate": 1.0,
+   "expected": 1,
+   "expected_kind": "flip_to_1",
+   "matches_expected": 84,
+   "acc_vs_original_gold": 0.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "negatives_status_to_Delayed": {
+   "group": "counterfactual",
+   "description": "all negatives; set Shipment_Status to Delayed",
+   "n": 84,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 84
+   },
+   "pred_pos_rate": 1.0,
+   "expected": 1,
+   "expected_kind": "flip_to_1",
+   "matches_expected": 84,
+   "acc_vs_original_gold": 0.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "negatives_waiting60_temp30": {
+   "group": "counterfactual",
+   "description": "all negatives; set Waiting_Time=60 and Temperature=30.0 (non-rule fields)",
+   "n": 84,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 84,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": 0,
+   "expected_kind": "unchanged",
+   "matches_expected": 84,
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "positives_waiting10_temp18": {
+   "group": "counterfactual",
+   "description": "all positives; set Waiting_Time=10 and Temperature=18.0 (non-rule fields)",
+   "n": 116,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 116
+   },
+   "pred_pos_rate": 1.0,
+   "expected": 1,
+   "expected_kind": "unchanged",
+   "matches_expected": 116,
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "both_rule_fields_removed": {
+   "group": "counterfactual",
+   "description": "all rows; delete the Shipment_Status and Traffic_Status lines",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 200,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": null,
+   "expected_kind": "none",
+   "notes": "no rule applies; report what the model emits",
+   "acc_vs_original_gold": 0.42,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0"
+   ]
+  }
+ },
+ "robustness_probe": {
+  "rename_columns_both": {
+   "group": "robustness",
+   "description": "all rows; rename Shipment_Status -> Status and Traffic_Status -> Traffic",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 84,
+    "1": 116
+   },
+   "pred_pos_rate": 0.58,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "a semantic reader keeps the gold label; a lexical reader may not",
+   "acc_vs_original_gold": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "rename_status_only": {
+   "group": "robustness",
+   "description": "all rows; rename Shipment_Status -> Status",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 84,
+    "1": 116
+   },
+   "pred_pos_rate": 0.58,
+   "expected": null,
+   "expected_kind": "gold",
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.75,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "rename_traffic_only": {
+   "group": "robustness",
+   "description": "all rows; rename Traffic_Status -> Traffic",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 84,
+    "1": 116
+   },
+   "pred_pos_rate": 0.58,
+   "expected": null,
+   "expected_kind": "gold",
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.785,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "synonym_Delayed_to_Late": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Late'",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 73
+   },
+   "pred_pos_rate": 1.0,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "gold is 1 for every such row; the literal rule no longer fires",
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.3151,
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "synonym_Delayed_to_DELAYED": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'DELAYED'",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 73
+   },
+   "pred_pos_rate": 1.0,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "gold is 1 for every such row; the literal rule no longer fires",
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.3151,
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "synonym_Delayed_to_delayed": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'delayed'",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 73
+   },
+   "pred_pos_rate": 1.0,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "gold is 1 for every such row; the literal rule no longer fires",
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.3151,
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "synonym_Heavy_to_Congested": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Congested'",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "gold is 1 for every such row; the literal rule no longer fires",
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "synonym_Heavy_to_HEAVY": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'HEAVY'",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 66
+   },
+   "pred_pos_rate": 1.0,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "gold is 1 for every such row; the literal rule no longer fires",
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.3485,
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "synonym_Heavy_to_heavy": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'heavy'",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 66
+   },
+   "pred_pos_rate": 1.0,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "gold is 1 for every such row; the literal rule no longer fires",
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.3485,
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "shuffle_column_order_seed0": {
+   "group": "robustness",
+   "description": "all rows; permute the 15 lines with a fixed seed",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 84,
+    "1": 116
+   },
+   "pred_pos_rate": 0.58,
+   "expected": null,
+   "expected_kind": "gold",
+   "meta": {
+    "order": [
+     "Asset_ID",
+     "User_Transaction_Amount",
+     "Waiting_Time",
+     "Shipment_Status",
+     "User_Purchase_Frequency",
+     "Latitude",
+     "Longitude",
+     "Humidity",
+     "Traffic_Status",
+     "Inventory_Level",
+     "Timestamp",
+     "Demand_Forecast",
+     "Logistics_Delay_Reason",
+     "Temperature",
+     "Asset_Utilization"
+    ]
+   },
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "shuffle_column_order_seed1": {
+   "group": "robustness",
+   "description": "all rows; permute the 15 lines with a fixed seed",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 84,
+    "1": 116
+   },
+   "pred_pos_rate": 0.58,
+   "expected": null,
+   "expected_kind": "gold",
+   "meta": {
+    "order": [
+     "Demand_Forecast",
+     "User_Transaction_Amount",
+     "Timestamp",
+     "Asset_Utilization",
+     "Temperature",
+     "Shipment_Status",
+     "Longitude",
+     "Traffic_Status",
+     "Humidity",
+     "User_Purchase_Frequency",
+     "Inventory_Level",
+     "Asset_ID",
+     "Logistics_Delay_Reason",
+     "Waiting_Time",
+     "Latitude"
+    ]
+   },
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "shuffle_column_order_seed2": {
+   "group": "robustness",
+   "description": "all rows; permute the 15 lines with a fixed seed",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 84,
+    "1": 116
+   },
+   "pred_pos_rate": 0.58,
+   "expected": null,
+   "expected_kind": "gold",
+   "meta": {
+    "order": [
+     "Waiting_Time",
+     "Longitude",
+     "Temperature",
+     "Logistics_Delay_Reason",
+     "User_Transaction_Amount",
+     "Humidity",
+     "Traffic_Status",
+     "Inventory_Level",
+     "Latitude",
+     "Shipment_Status",
+     "User_Purchase_Frequency",
+     "Asset_ID",
+     "Timestamp",
+     "Demand_Forecast",
+     "Asset_Utilization"
+    ]
+   },
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "only_status_removed": {
+   "group": "robustness",
+   "description": "all rows; delete the Shipment_Status line",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 134,
+    "1": 66
+   },
+   "pred_pos_rate": 0.33,
+   "expected": null,
+   "expected_kind": "none",
+   "notes": "the remaining clause Traffic_Status == Heavy still applies",
+   "acc_vs_original_gold": 0.75,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1"
+   ]
+  },
+  "only_traffic_removed": {
+   "group": "robustness",
+   "description": "all rows; delete the Traffic_Status line",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 127,
+    "1": 73
+   },
+   "pred_pos_rate": 0.365,
+   "expected": null,
+   "expected_kind": "none",
+   "notes": "the remaining clause Shipment_Status == Delayed still applies",
+   "acc_vs_original_gold": 0.785,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "rule_fields_oov": {
+   "group": "robustness",
+   "description": "all rows; Shipment_Status = Unknown and Traffic_Status = N/A (values never seen in training)",
+   "n": 200,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 200,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": null,
+   "expected_kind": "none",
+   "acc_vs_original_gold": 0.42,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0"
+   ]
+  }
+ },
+ "ood_probe": {
+  "readme_v0_schema": {
+   "group": "ood",
+   "description": "the usage example from the original model card: a schema the model never saw",
+   "n": 1,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 1,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": null,
+   "expected_kind": "none",
+   "raw_outputs": [
+    "Logistics_Delay: 0"
+   ]
+  },
+  "empty_user": {
+   "group": "ood",
+   "description": "an empty user turn",
+   "n": 1,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 1,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": null,
+   "expected_kind": "none",
+   "raw_outputs": [
+    "Logistics_Delay: 0"
+   ]
+  },
+  "unrelated_question": {
+   "group": "ood",
+   "description": "a question unrelated to logistics",
+   "n": 1,
+   "unparsable": 1,
+   "pred_counts": {
+    "0": 0,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": null,
+   "expected_kind": "none",
+   "raw_outputs": [
+    "Paris"
+   ]
+  },
+  "header_only": {
+   "group": "ood",
+   "description": "the 15 column names with no values",
+   "n": 1,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 1,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": null,
+   "expected_kind": "none",
+   "raw_outputs": [
+    "Logistics_Delay: 0"
+   ]
+  }
+ }
+}

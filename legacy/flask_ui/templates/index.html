@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics Delay Prediction System - LLAMA Model</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .input-section {
+            flex: 1;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .output-section {
+            flex: 1;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            min-height: 150px;
+        }
+
+        .result-content {
+            font-size: 1.2rem;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .result-meta {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #ef4444;
+        }
+
+        .input-dialog {
+            background: #f0f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #bae6fd;
+        }
+
+        .input-dialog h3 {
+            color: #0369a1;
+            margin-bottom: 10px;
+        }
+
+        .input-dialog pre {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚛 Logistics Delay Prediction System</h1>
+            <p>Intelligent Supply Chain Analysis Based on LLAMA Model</p>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <h2 class="section-title">📝 Input Parameters</h2>
+                <form id="predictionForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="timestamp">Timestamp</label>
+                            <input type="datetime-local" id="timestamp" name="timestamp" value="2024-08-10T08:40:26">
+                        </div>
+                        <div class="form-group">
+                            <label for="asset_id">Asset ID</label>
+                            <input type="text" id="asset_id" name="asset_id" placeholder="e.g., Truck_2" value="Truck_2">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="latitude">Latitude</label>
+                            <input type="number" id="latitude" name="latitude" step="0.0001" placeholder="-90 to 90" value="-39.8800">
+                        </div>
+                        <div class="form-group">
+                            <label for="longitude">Longitude</label>
+                            <input type="number" id="longitude" name="longitude" step="0.0001" placeholder="-180 to 180" value="55.1792">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="inventory_level">Inventory Level</label>
+                            <input type="number" id="inventory_level" name="inventory_level" placeholder="e.g., 261" value="261">
+                        </div>
+                        <div class="form-group">
+                            <label for="shipment_status">Shipment Status</label>
+                            <select id="shipment_status" name="shipment_status">
+                                <option value="">Please select</option>
+                                <option value="Pending">Pending</option>
+                                <option value="In Transit">In Transit</option>
+                                <option value="Delivered" selected>Delivered</option>
+                                <option value="Delayed">Delayed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="temperature">Temperature (°C)</label>
+                            <input type="number" id="temperature" name="temperature" step="0.1" placeholder="e.g., 27.1" value="27.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="humidity">Humidity (%)</label>
+                            <input type="number" id="humidity" name="humidity" step="0.1" placeholder="0-100" value="67.3">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="traffic_status">Traffic Status</label>
+                            <select id="traffic_status" name="traffic_status">
+                                <option value="">Please select</option>
+                                <option value="Clear">Clear</option>
+                                <option value="Moderate">Moderate</option>
+                                <option value="Heavy">Heavy</option>
+                                <option value="Detour" selected>Detour</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="waiting_time">Waiting Time (minutes)</label>
+                            <input type="number" id="waiting_time" name="waiting_time" placeholder="e.g., 35" value="35">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="transaction_amount">User Transaction Amount</label>
+                            <input type="number" id="transaction_amount" name="transaction_amount" placeholder="e.g., 496" value="496">
+                        </div>
+                        <div class="form-group">
+                            <label for="purchase_frequency">User Purchase Frequency</label>
+                            <input type="number" id="purchase_frequency" name="purchase_frequency" placeholder="e.g., 2" value="2">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="delay_reason">Logistics Delay Reason</label>
+                            <select id="delay_reason" name="delay_reason">
+                                <option value="">Please select</option>
+                                <option value="None">None</option>
+                                <option value="Weather" selected>Weather</option>
+                                <option value="Traffic">Traffic</option>
+                                <option value="Technical">Technical</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="asset_utilization">Asset Utilization (%)</label>
+                            <input type="number" id="asset_utilization" name="asset_utilization" step="0.1" placeholder="0-100" value="71.3">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="demand_forecast">Demand Forecast</label>
+                        <input type="number" id="demand_forecast" name="demand_forecast" placeholder="e.g., 264" value="264">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="predictBtn">
+                        Start Prediction
+                    </button>
+                </form>
+            </div>
+
+            <div class="output-section">
+                <h2 class="section-title">📊 Prediction Results</h2>
+                <div id="resultContainer">
+                    <div class="result-box">
+                        <div class="result-content">
+                            <p style="color: #999; text-align: center; margin-top: 40px;">
+                                Please fill in the parameters and click "Start Prediction" button
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="inputDialog" class="input-dialog" style="display: none;">
+                    <h3>Input Dialog Format</h3>
+                    <pre id="dialogContent"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const predictBtn = document.getElementById('predictBtn');
+            const resultContainer = document.getElementById('resultContainer');
+            const inputDialog = document.getElementById('inputDialog');
+            const dialogContent = document.getElementById('dialogContent');
+
+            // 禁用按钮并显示加载状态
+            predictBtn.disabled = true;
+            predictBtn.textContent = '预测中...';
+
+            resultContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>模型正在处理中，请稍候...</p>
+                </div>
+            `;
+
+            // 收集表单数据
+            const formData = new FormData(this);
+            const data = {};
+
+            for (let [key, value] of formData.entries()) {
+                if (value.trim() !== '') {
+                    // 处理datetime-local格式
+                    if (key === 'timestamp' && value) {
+                        // 将datetime-local格式转换为标准格式
+                        value = value.replace('T', ' ') + ':00';
+                    }
+                    data[key] = value;
+                }
+            }
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 解析结果
+                    let delayStatus = '未知';
+                    let statusColor = '#666';
+                    let statusIcon = '❓';
+
+                    if (result.result.includes('1')) {
+                        delayStatus = '存在延迟';
+                        statusColor = '#ef4444';
+                        statusIcon = '⚠️';
+                    } else if (result.result.includes('0')) {
+                        delayStatus = '无延迟';
+                        statusColor = '#10b981';
+                        statusIcon = '✅';
+                    }
+
+                    resultContainer.innerHTML = `
+                        <div class="result-box">
+                            <div class="result-content">
+                                <h3 style="color: ${statusColor}; margin-bottom: 15px;">
+                                    ${statusIcon} 预测结果: ${delayStatus}
+                                </h3>
+                                <p style="font-size: 1.5rem; font-weight: bold; color: #333;">
+                                    ${result.result}
+                                </p>
+                            </div>
+                            <div class="result-meta">
+                                <p>⏱️ 推理时间: ${result.inference_time}</p>
+                                <p>🖥️ 模型: LLAMA (VCU-test)</p>
+                            </div>
+                        </div>
+                    `;
+
+                    // 显示输入对话格式
+                    if (result.input_dialog) {
+                        inputDialog.style.display = 'block';
+                        dialogContent.textContent = JSON.stringify(result.input_dialog, null, 2);
+                    }
+                } else {
+                    resultContainer.innerHTML = `
+                        <div class="error">
+                            <h3>❌ 预测失败</h3>
+                            <p>${result.error || '未知错误'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultContainer.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Request Failed</h3>
+                        <p>${error.message}</p>
+                        <p>Please ensure the backend service is running.</p>
+                    </div>
+                `;
+            } finally {
+                // 恢复按钮状态
+                predictBtn.disabled = false;
+                predictBtn.textContent = 'Start Prediction';
+            }
+        });
+    </script>
+</body>
+</html>

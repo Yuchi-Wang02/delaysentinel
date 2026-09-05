@@ -1,0 +1,47 @@
+# Numbers that may appear in README.md without being present in results/ or runs/.
+# One number per line; everything after '#' is the reason.
+0        # labels / percentages
+1        # labels, section numbers, "1 file"
+2        # depth-2 tree, two clauses, two fields
+3        # three runs, three seeds, three repeats
+4        # per-device batch size (also in training_config.json)
+5        # five folds
+8        # max_new_tokens (also in eval.json decoding)
+10       # ten Asset_ID trucks
+12       # non-rule feature columns after dropping Timestamp
+13       # prompt lines left after removing the two rule fields
+14       # prompt lines left after removing one rule field
+15       # input columns
+16       # CSV columns; effective batch size
+20       # eval subset rows (10% of 200)
+50       # first step with zero training loss (also from trainer_state summary)
+80       # 80/20 split
+95       # 95% intervals
+100      # percentages; 100-epoch run
+106      # CSV size in KB
+177      # 50 + 43 + 84 counterfactual flips on the rule fields (each addend is in eval.json)
+9        # "9 月" (September) in the Chinese summary
+1.15     # scheduler overshoot factor inherited from upstream
+1725     # 1500 * 1.15 planned scheduler steps
+1090     # seconds between the first and last TensorBoard event file of run sc904
+18       # minutes, rounded from 1090 s
+1.24     # 1,235,814,400 parameters rounded to billions
+1.2      # ditto
+2024     # year
+2025     # year
+2026     # year
+3.2      # Llama 3.2
+3.1      # Llama 3 chat template family mention
+4.55.4   # transformers version
+128004   # <|finetune_right_pad_id|>
+128256   # vocabulary size
+0.6      # sampling temperature in the original generation_config
+0.9      # top_p in the original generation_config
+2e-5     # learning rate (2e-05 in training_config.json)
+0.1      # weight decay
+0.05     # alpha for 95% CI
+90       # latitude bound
+180      # longitude bound
+1.b      # license clause
+i        # license clause
+iii      # license clause
