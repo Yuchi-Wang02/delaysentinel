@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.png binary
+*.csv text eol=lf
+*.jsonl text eol=lf
