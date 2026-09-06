@@ -72,7 +72,26 @@ DELAYED_VARIANTS = [
     ("Early", "Early", "antonym"),
     ("Pending", "Pending", "neighbour"),
     ("Not_Delayed", "Not Delayed", "negation"),
+    ("Delay", "Delay", "shared_token"),
 ]
+#: 12 capitalised English words that the tokenizer encodes as a single token, unrelated to delay
+#: or traffic. They give the base rate at which an unseen value in a rule field makes the model
+#: answer 1, which the synonym probes on their own cannot establish.
+CONTROL_WORDS = (
+    "Copper",
+    "Violet",
+    "Harbor",
+    "Maple",
+    "Quartz",
+    "Falcon",
+    "Meadow",
+    "Cobalt",
+    "Lantern",
+    "Marble",
+    "Willow",
+    "Amber",
+)
+
 HEAVY_VARIANTS = [
     ("HEAVY", "HEAVY", "case"),
     ("heavy", "heavy", "case"),
@@ -85,6 +104,7 @@ HEAVY_VARIANTS = [
     ("Free_flowing", "Free-flowing", "antonym"),
     ("Moderate", "Moderate", "neighbour"),
     ("Not_Heavy", "Not Heavy", "negation"),
+    ("Heav", "Heav", "shared_token"),
 ]
 
 
@@ -398,6 +418,48 @@ def robustness_probes(test: pd.DataFrame, users: Sequence[str]) -> list[Probe]:
             notes="the remaining clause Shipment_Status == Delayed still applies",
         )
     )
+    for word in CONTROL_WORDS:
+        probes.append(
+            Probe(
+                f"control_word_Shipment_Status_{word}",
+                "robustness",
+                f"rows with Shipment_Status == Delayed; write the value as {word!r} (unrelated single-token word)",
+                delayed_rows,
+                [set_field(users[i], "Shipment_Status", word) for i in delayed_rows],
+                None,
+                "gold",
+                notes="base rate for an unseen value in this field; gold is 1 for every such row",
+                meta={"variant_kind": "control_word", "field": "Shipment_Status", "value": word},
+            )
+        )
+        probes.append(
+            Probe(
+                f"control_word_Traffic_Status_{word}",
+                "robustness",
+                f"rows with Traffic_Status == Heavy; write the value as {word!r} (unrelated single-token word)",
+                heavy_rows,
+                [set_field(users[i], "Traffic_Status", word) for i in heavy_rows],
+                None,
+                "gold",
+                notes="base rate for an unseen value in this field; gold is 1 for every such row",
+                meta={"variant_kind": "control_word", "field": "Traffic_Status", "value": word},
+            )
+        )
+    for label in ("Heavy", "Delayed"):
+        line = f"Note: the depot supervisor is Mr. {label}"
+        probes.append(
+            Probe(
+                f"trigger_{label}_in_free_text",
+                "robustness",
+                f"all negatives; append a free-text line containing {label!r} outside any known field",
+                neg,
+                [users[i] + "\n" + line for i in neg],
+                0,
+                "unchanged",
+                notes="a field-bound rule keeps 0; a detector that scans the whole turn fires",
+                meta={"trigger_placement": True, "free_text": True, "value": label},
+            )
+        )
     probes.append(
         Probe(
             "rule_fields_oov",
@@ -463,10 +525,17 @@ def _literal_rule_on_texts(texts: Sequence[str]) -> list[int | None]:
 
 
 def _remaining_clause_on_texts(texts: Sequence[str]) -> list[int | None]:
-    """When exactly one rule field is present, the value of that single clause."""
+    """When one rule field was *deleted*, the value of the clause that is left.
+
+    A renamed column (``Status``, ``Traffic``) is not a deleted one, so a prompt that still has
+    all 15 lines returns ``None``: reading it as a single clause would be meaningless.
+    """
     out: list[int | None] = []
     for text in texts:
         fields = parse_user_text(text)
+        if len(fields) >= len(FIELDS):  # nothing was removed; a rename, not a deletion
+            out.append(None)
+            continue
         has_s, has_t = "Shipment_Status" in fields, "Traffic_Status" in fields
         if has_s and not has_t:
             out.append(int(fields["Shipment_Status"].strip() == "Delayed"))
@@ -525,12 +594,18 @@ def run_probe(scorer, probe: Probe, gold: Sequence[int]) -> dict:
     return result
 
 
-def summarize_counterfactuals(results: dict[str, dict], probes: Sequence[Probe]) -> dict:
-    """Aggregate counts that the model card quotes: rule-field edits vs non-rule edits."""
+def summarize_counterfactuals(
+    results: dict[str, dict], probes: Sequence[Probe], users: Sequence[str] | None = None
+) -> dict:
+    """Aggregate counts that the model card quotes: rule-field edits vs non-rule edits.
+
+    ``users`` are the original prompts; when given, rewrites that are byte-identical to the
+    original (the row already had that value) are counted separately, because they are not edits.
+    """
     by_key = {p.key: p for p in probes}
     rule_edits = rule_matches = 0
     rule_rows: set[int] = set()
-    nonrule_edits = nonrule_changed = 0
+    nonrule_edits = nonrule_changed = nonrule_identical = nonrule_pairs = 0
     nonrule_fields: set[str] = set()
     for key, res in results.items():
         p = by_key.get(key)
@@ -543,15 +618,21 @@ def summarize_counterfactuals(results: dict[str, dict], probes: Sequence[Probe])
         elif p.expected_kind == "unchanged" and p.group == "counterfactual":
             nonrule_edits += res["n"]
             nonrule_changed += res["n"] - res.get("matches_expected", 0)
+            if users is not None:
+                nonrule_identical += sum(1 for i, t in zip(p.indices, p.texts, strict=False) if t == users[i])
             if p.meta.get("field"):
                 nonrule_fields.add(p.meta["field"])
             else:
+                nonrule_pairs += res["n"]
                 nonrule_fields.update({"Waiting_Time", "Temperature"})
     return {
         "rule_field_edits": rule_edits,
         "rule_field_edits_flipped_as_expected": rule_matches,
         "distinct_rows_with_rule_field_edit": len(rule_rows),
         "non_rule_field_edits": nonrule_edits,
+        "non_rule_single_field_edits": nonrule_edits - nonrule_pairs,
+        "non_rule_two_field_edits": nonrule_pairs,
+        "non_rule_field_edits_identical_to_the_original": nonrule_identical,
         "non_rule_field_edits_that_changed_the_prediction": nonrule_changed,
         "non_rule_fields_probed": sorted(nonrule_fields),
         "non_rule_fields_probed_count": len(nonrule_fields),

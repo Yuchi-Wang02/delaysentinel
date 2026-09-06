@@ -1,5 +1,61 @@
 # Changelog
 
+## v1.0.1 — September 2026: corrections from the internal review
+
+A read-only multi-agent review of the v1.0.0 tree found claims that the evidence did not
+support and one attribution error. Nothing here changes the weights or the frozen split.
+
+### The finding is now stated precisely
+
+v1.0.0 described the model as a bag-of-words detector for two trigger words. The probes
+say something narrower: it matches the strings `Delay` and `Heavy`, case-blind,
+truncation-tolerant (`Heav` alone fires), negation-blind (`Not Delayed` fires) and
+field-agnostic. Twelve control words were added in both rule fields as a baseline; all but
+one leave the prediction at baseline. The `Delay` match also fires from an appended
+free-text line, while `Heavy` does not. The card and both case studies now say what the
+matched pattern is, and state the part that is still open: the field name
+`Logistics_Delay_Reason` contains `Delay` in every prompt and does not fire, so the match is
+not a naive substring scan of the whole prompt.
+
+### Corrections to the Olist reference study
+
+- Orders never delivered were being dropped silently. They are now counted, split into
+  still in flight and never a delivery, and reported.
+- The split was random. It is now a label-availability split: training uses only orders
+  whose outcome was known at the split date, and the orders straddling it are reported
+  rather than assigned.
+- Intervals over months are now month-block bootstrap, not order-level resampling, because
+  monthly late rates move together.
+- The calibration gap had the wrong explanation. It is a shift in the monthly late rate,
+  shown with a per-month table and an ablation that drops the purchase month.
+- The threshold table is a sweep over score thresholds, not over calibrated probabilities,
+  and the expedite-cost formula is corrected.
+
+### Corrections to the evaluation code
+
+- An unparsable answer is excluded from the teacher-forced AUROC instead of being scored as
+  a negative.
+- `position_ids` are derived from the attention mask, so left padding no longer shifts them.
+- The chat template's date is pinned, and the rendered system turn is hashed into the
+  results.
+- A results file written from a dirty working tree records the commit with a `-dirty` mark.
+
+### Corrections to the number check
+
+- It now covers eight documents, reads scientific notation, and no longer accepts a coarse
+  decimal rounding for values below 1e-3, where every such value would otherwise spell as
+  `0.000` and match every other. Two tokens that had been passing on that collision, the
+  unit of the eval-loss column and the rounding boundary of the training log, are now
+  listed in the allowlist with their reasons.
+
+### Attribution
+
+- The vendored training script is pinned to upstream `136d2bf`, the last commit touching it
+  before the September 2025 training, not to a commit dated after it. The file is byte-for-
+  byte upstream plus a header, and is excluded from the formatter so it stays that way.
+- Olist is CC BY-NC-SA 4.0. Its section in `THIRD_PARTY_LICENSES.md` records the
+  attribution, the non-commercial condition, and that no rows are committed.
+
 ## v1.0.0 — September 2026: the audit release
 
 The September 2025 artefact (`Yuchiwang02/DelaySentinel` on the Hub) was a bare model repo
@@ -37,7 +93,7 @@ Space do not resolve. The README states this in its *Publication status* line.
   `THIRD_PARTY_LICENSES.md`; front-matter `license: llama3.2`; "Built with Llama" on the
   card and in the demo; the publish script renames the repository to
   `Llama-3.2-1B-DelaySentinel` and ships the licence files with the Space.
-- **Attribution.** `scripts/train.py` carries its upstream header (commit `d352d88`, MIT,
+- **Attribution.** `scripts/train.py` carries its upstream header (commit `136d2bf`, MIT,
   Alpaca portions Apache-2.0) below the original shebang and lists the local changes.
 - **Model card.** Rewritten around the leakage disclosure. Removed: the non-existent Gradio
   Space claim, the placeholder repository link, the wrong repo id, the invented `<|system|>`

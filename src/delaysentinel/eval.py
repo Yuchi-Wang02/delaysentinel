@@ -32,6 +32,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import roc_auc_score
 
 from . import __version__
 from .baselines import FEATURE_ENCODING, cross_validate, evaluate_split
@@ -56,8 +57,11 @@ HUB_IDS = ("Yuchiwang02/Llama-3.2-1B-DelaySentinel", "Yuchiwang02/DelaySentinel"
 
 
 def _git_commit() -> str | None:
+    """HEAD at run time, suffixed with ``-dirty`` when the working tree differs from it."""
     try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        dirty = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip()
+        return f"{head}-dirty" if dirty else head
     except Exception:  # provenance is best effort
         return None
 
@@ -98,6 +102,10 @@ def _weights_provenance(model_id: str, hub_model_id: str) -> dict:
     out["hub_id_used_for_hash"] = hub_used
     out["weights_match_hub"] = (
         None if not (hub_sha and out["model_safetensors_sha256"]) else hub_sha == out["model_safetensors_sha256"]
+    )
+    out["weights_match_hub_note"] = (
+        "trivially true when --model is itself a Hub id, because both hashes then come from the same "
+        "repository; it is an independent check only when --model is a local directory"
     )
     return out
 
@@ -283,7 +291,6 @@ def main(argv: list[str] | None = None) -> dict:
         }
         if scores:
             margins = np.array([s["margin"] for s in scores])
-            diag = classification_metrics(gold, np.where(preds == -1, 0, preds), p1, n_boot=args.n_boot, seed=args.seed)
             results["model"]["teacher_forced_diagnostics"] = {
                 "note": (
                     "hard-label model; the logit margin after 'Logistics_Delay:' is saturated, so the implied "
@@ -291,7 +298,7 @@ def main(argv: list[str] | None = None) -> dict:
                 ),
                 "batch_size": args.batch_size,
                 "dtype": args.dtype,
-                "auroc": diag.get("auroc"),
+                "auroc": round(float(roc_auc_score(gold[parsable], p1[parsable])), 4),
                 "margin_min": round(float(margins.min()), 3),
                 "margin_max": round(float(margins.max()), 3),
                 "margin_abs_min": round(float(np.abs(margins).min()), 3),
@@ -337,12 +344,23 @@ def main(argv: list[str] | None = None) -> dict:
         print("[probes] counterfactual", flush=True)
         cf = counterfactual_probes(test, users)
         results["counterfactual_probe"] = {p.key: run_probe(scorer, p, gold) for p in cf}
-        results["counterfactual_probe"]["_summary"] = summarize_counterfactuals(results["counterfactual_probe"], cf)
+        results["counterfactual_probe"]["_summary"] = summarize_counterfactuals(
+            results["counterfactual_probe"], cf, users
+        )
         if not args.skip_robustness:
             print("[probes] robustness", flush=True)
             results["robustness_probe"] = {p.key: run_probe(scorer, p, gold) for p in robustness_probes(test, users)}
         print("[probes] out-of-distribution", flush=True)
         results["ood_probe"] = {p.key: run_probe(scorer, p, gold) for p in ood_probes()}
+        n_cf = len(results["counterfactual_probe"]) - 1
+        n_rb = len(results.get("robustness_probe", {}))
+        n_ood = len(results["ood_probe"])
+        results["probe_set_counts"] = {
+            "counterfactual": n_cf,
+            "robustness": n_rb,
+            "ood": n_ood,
+            "total": n_cf + n_rb + n_ood,
+        }
 
     results["provenance"]["total_seconds"] = round(time.time() - t_start, 1)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)

@@ -14,7 +14,7 @@ def test_threshold_sweep_and_reliability_shapes():
     y = rng.integers(0, 2, 500)
     prob = np.clip(y * 0.6 + rng.random(500) * 0.4, 0, 1)
     sweep = _threshold_sweep(y, prob)
-    assert [row["threshold"] for row in sweep] == [0.05, 0.1, 0.2, 0.3, 0.5]
+    assert [row["score_threshold"] for row in sweep] == [0.05, 0.1, 0.2, 0.3, 0.5]
     assert all(0 <= row["recall_of_late_orders"] <= 1 for row in sweep)
     rel = _reliability(y, prob)
     assert sum(r["n"] for r in rel) == 500

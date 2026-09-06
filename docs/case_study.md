@@ -1,4 +1,4 @@
-# How a 1.24-billion-parameter model learned two trigger words
+# How a 1.24-billion-parameter model learned to match two strings
 
 *A label-leakage post-mortem on my first fine-tuning project. Every metric here is in
 [`results/eval.json`](../results/eval.json) or
@@ -14,18 +14,19 @@ learn how supervised fine-tuning works end to end. I took a 1,000-row Kaggle tab
 Logistics Supply Chain Dataset", turned each row into a chat record (15 `Column: value` lines,
 answer `Logistics_Delay: 0|1`), split it 800/200 with an unseeded shuffle, and ran full-parameter
 SFT of `Llama-3.2-1B-Instruct` for 30 epochs on a single GPU (model not logged) using a training
-script adapted from an open-source smart-home project. I exported a GGUF, wrote a Flask form, and
+script taken from an open-source smart-home project. I exported a GGUF, wrote a Flask form, and
 uploaded the weights to Hugging Face with a model card that called it "AI-powered logistics delay
 prediction".
 
 The pipeline worked. The logged training loss rounded to 0.0000 by step 50, the end of the first
-epoch (`figures/fig_training.png`). I did not compute accuracy; the only evaluation I looked at
+epoch (`figures/fig_training.png`). I never computed accuracy; the only evaluation I looked at
 was the Trainer's eval loss, which sat around 3e-6.
 
 ## 2. The number that should have worried me
 
-A year later I scored the published weights on my own 200-row test split with greedy decoding:
-accuracy 1.000, F1 1.000, confusion `[[84, 0], [0, 116]]`, zero unparsable outputs.
+A year later I scored the published weights for the first time, on my own 200-row test split with
+greedy decoding: accuracy 1.000, F1 1.000, confusion `[[84, 0], [0, 116]]`, zero unparsable
+outputs.
 
 A perfect score on a noisy business problem is not a result. It is a symptom. The first thing to
 check is whether the label can be reconstructed from the inputs by something much simpler than the
@@ -56,9 +57,9 @@ and reports that two conditions reproduce the label with zero mismatches and tha
 decision tree scores 1.000 under 5-fold cross-validation. Running it before training would have
 ended the project as a *prediction* project on day one.
 
-The table is also synthetic, whatever the Kaggle page says: coordinates are uniform over the
-whole globe (`figures/fig_latlon.png`), every numeric column is uniform between round bounds, and
-318 rows that are *not* delayed still carry a "delay reason".
+The table is also synthetic, whatever the Kaggle page says: latitude and longitude are uniform
+over the whole globe (`figures/fig_latlon.png`), and 318 rows that are *not* delayed still carry
+a "delay reason".
 
 ## 4. Baselines
 
@@ -71,10 +72,9 @@ timestamp gives 0.520 / 0.482. There is nothing else in the table to learn. Seed
 on every fold; the three "without" variants between 0.496 and 0.509 mean accuracy).
 
 So the fine-tuned model is not "as good as a decision tree". On every original and counterfactual
-test prompt it is tied with a tree that has two splits and three leaves, at 1,235,814,400
-parameters and about 18 minutes between the first and last TensorBoard events of the run instead
-of no training at all. The two part ways only on inputs the tree's one-hot encoder maps to
-"unknown", which is where the next section starts.
+test prompt it ties with a tree that has two splits and three leaves, at 1,235,814,400 parameters
+and about 18 minutes between the first and last TensorBoard events of the run, against a
+millisecond of CPU for the tree. The two part ways only on the rewrites in the next section.
 
 ## 5. Probing what the weights actually do
 
@@ -87,59 +87,83 @@ logit margin on each (`figures/fig_probes.png`):
 - Flip `Traffic_Status` from `Heavy` to `Clear` on the 43 positives whose status is not `Delayed`:
   43 of 43 flip to 0.
 - Set `Traffic_Status` to `Heavy`, or `Shipment_Status` to `Delayed`, on the 84 negatives: 84 of 84
-  flip to 1 in each case. In total 261 of 261 rule-field edits over 177 distinct rows flip as the
+  flip to 1 in each case. In total 261 of 261 rule-field edits, over 177 distinct rows, flip as the
   rule predicts.
-- Change one of the other 13 fields at a time, on all negatives and all positives (3,200 edited
-  prompts): 0 predictions change. Every margin stays above 12 in absolute value.
+- Change one of the other 13 fields (3,000 single-field edits) or two of them together (200 more):
+  0 predictions change. Every margin stays above 12 in absolute value. 197 of those 3,200 edits
+  left the prompt unchanged because the row already carried the replacement value.
 - Delete both rule lines from every prompt: the model answers 0 for all 200 rows.
 
-Then the robustness probes ask how the trigger is represented, and this is where the story
-changed under my hands. Renaming the two columns and shuffling the order of the 15 lines leave
-every prediction unchanged, so column names do not matter. Deleting only one rule line makes the
-model evaluate the other clause exactly (66 positives when only traffic remains, 73 when only
-status remains). So far this looks like a field-bound rule. But:
+So far this is consistent with "the model learned the rule". The robustness probes then ask what
+exactly is being matched, and the answer is not the rule.
 
-- Put `Heavy` into `Logistics_Delay_Reason`, or `Delayed` into `Logistics_Delay_Reason` or
-  `Asset_ID`, or swap the two values between the rule fields (`Shipment_Status: Heavy`,
-  `Traffic_Status: Delayed`), on the 84 negatives: all 84 predict 1 in every case.
-- Write `Delayed` as `Not Delayed`, or `Heavy` as `Not Heavy`: still 1 on every row.
-- Write `Delayed` as `Late` or `Early`: 1 on all 73 rows. Write it as `Behind schedule`,
-  `Postponed`, `Overdue`, `Held up`, `On Time` or `Pending`: only the 23 rows whose traffic is
-  also Heavy stay positive.
-- Write `Heavy` as `Light`: 1 on all 66 rows. Write it as `Congested`, `Jammed`, `Gridlock`,
-  `Slow`, `Dense`, `Free-flowing` or `Moderate`: only the 23 rows whose status is also Delayed
-  stay positive.
+**Case, truncation and negation do not matter.** `DELAYED`, `delayed`, the bare stem `Delay` and
+`Not Delayed` all keep 73 of 73 rows at 1. `HEAVY`, `heavy`, the truncation `Heav` and `Not Heavy`
+keep 66 of 66 at 1. A model that had learned the rule would answer 0 for `Not Delayed`.
 
-The weights are not a rule over two fields. They are a detector for the tokens `Delayed` and
-`Heavy` anywhere in the user turn, blind to negation, insensitive to the column the token sits in,
-narrower than the words in one direction (five synonyms per clause do not fire) and wider in
-another (`Early` and `Light` do). A one-hot decision tree would answer 0 on every one of those
-rewrites; the model answers 1 on some and 0 on others according to lexical proximity that the
-training data never asked it to learn.
+**Meaning does not matter either, in both directions.** `Behind schedule`, `Postponed`, `Overdue`,
+`Held up` and `Pending` do *not* fire, leaving only the 23 rows that satisfy the other clause; the
+same for `Congested`, `Jammed`, `Gridlock`, `Slow`, `Dense`, `Free-flowing` and `Moderate`. But
+`Late`, `Early` and `Light` all fire on every row. Five genuine synonyms per clause are read as
+"not delayed", while two antonyms are read as "delayed".
+
+**The field does not matter.** Put `Heavy` or `Delayed` into `Logistics_Delay_Reason`, put
+`Delayed` into `Asset_ID`, or swap the two values between the rule fields, and all 84 negatives
+answer 1. Renaming the columns and shuffling the 15 lines changes nothing at all.
+
+**But it is a specific match, not a reaction to anything unfamiliar.** Twelve unrelated
+single-token words (`Copper`, `Violet`, `Harbor`, `Maple`, `Quartz`, `Falcon`, `Meadow`, `Cobalt`,
+`Lantern`, `Marble`, `Willow`, `Amber`) placed in each rule field leave the prediction at the
+baseline in 23 of 24 probes. The single exception, `Meadow` in `Traffic_Status`, fires on 10 rows
+beyond the baseline.
+
+**The two clauses are not implemented alike.** Appending a free-text line "Note: the depot
+supervisor is Mr. Delayed" to the 84 negatives makes all 84 answer 1. The same line with
+"Mr. Heavy" changes nothing. The `Delay` match scans the whole turn; the `Heavy` match only reads
+field values.
 
 Outside the schema the model does not abstain. The usage example from my original model card,
 which used columns like `carrier` and `weight_kg` that the model never saw, gets
 `Logistics_Delay: 0` with a margin of -14.0. So does a header-only prompt (-10.6) and an empty
-prompt (-2.1, the only weak answer in the set). Asked "What is the capital of France?", it answers
-`Paris`. The base model is still in there; the fine-tune added a narrow lexical trigger and a
-strong prior to answer `0` when the form is present but the trigger words are not.
+prompt (-2.1, the weakest of the four). Asked "What is the capital of France?", it answers `Paris`.
+The base model is still in there; the fine-tune added a string matcher and a strong prior to
+answer `0` when the form is present but the strings are not.
 
-## 6. What the same method finds on real data
+What is still open: I do not know the exact pattern being matched. The field name
+`Logistics_Delay_Reason` contains "Delay" in every prompt and triggers nothing, so it is not a
+naive substring scan, and I have not tested why `Late`, `Early` and `Light` fire. Those are the
+probes I would design next, and they should have been part of the protocol before training rather
+than a year after.
 
-To make sure the method itself is not the problem, `python -m delaysentinel.positive_control`
-runs the same discipline on the public Olist Brazilian e-commerce orders (99,441 real, anonymised
+## 6. What the same metrics look like on real data
+
+To check that the method is not the problem, `python -m delaysentinel.positive_control` applies
+the same discipline to the public Olist Brazilian e-commerce orders (99,441 real, anonymised
 orders from 2016-2018): late if the customer delivery date is after the estimated date, delivered
-orders only, a 60-day right-censoring guard, features restricted to what is known at checkout, a
-time-based split with 37,702 test orders (prevalence 0.0722), and bootstrap intervals. Logistic
-regression reaches AUROC 0.7045 [0.6948, 0.7135] and AUPRC 0.1632 [0.1522, 0.1754] against a
-prevalence of 0.0722; histogram gradient boosting 0.6727 / 0.1299; the promised lead time alone
-ranks at 0.5568 (`figures/fig_positive_control.png`). For the decision "expedite if flagged" the
-expedite cost is paid on every flagged order, so the threshold is the cost ratio
-`C_expedite / C_chargeback`; at 0.1 the logistic model flags 7.4% of orders and catches 22.7% of
-late ones at 22.1% precision. The reliability diagram shows the model under-predicting in the test
-period (0.034 predicted versus 0.060 observed in the largest bin) because the late rate rose after
-the training window. That is what a delay model on real checkout-time data looks like: a modest,
-calibratable signal with an explicit cost trade-off, not 100%.
+orders only, a 60-day right-censoring guard, features restricted to what is known at checkout, and
+a split that a deployed model could actually have used — train on orders *delivered* before
+2018-03-01 (53,644 orders, late rate 0.0505), test on orders *purchased* on or after it (37,702
+orders, late rate 0.0722). 3,673 orders that straddle the split belong to neither.
+
+Logistic regression reaches AUROC 0.6908 with an order-level bootstrap interval of
+[0.6819, 0.6993] and a month-block interval of [0.6329, 0.7599]; AUPRC 0.155 against a prevalence
+of 0.0722; histogram gradient boosting 0.6507 / 0.1176; the promised lead time alone ranks at
+0.5568 (`figures/fig_positive_control.png`). The month-block interval is four times as wide as the
+order-level one, and that is the honest uncertainty for "would this hold next period".
+
+Two things are wrong with the setup, and the JSON says so rather than hiding them. First, 2,919
+orders purchased before the cut-off were still undelivered at extraction, every one already past
+its promised date; the delivered-only filter drops them instead of labelling them late. Counting
+the 1,723 in-flight ones as late raises the test prevalence from 0.0722 to 0.0857 and moves AUROC
+to 0.6812. Second, the model is mis-calibrated across the split: mean predicted 0.0413 against an
+observed 0.0722. That is not a base-rate drift the model could have anticipated — the late rate in
+the test window swings from 0.0116 in June 2018 to 0.1896 in March 2018, and the model predicts
+0.0493 for that March. Dropping `purchase_month` does not fix it (0.0565 for the same month). No
+re-calibration was attempted.
+
+The same leakage scanner run on this table finds no pure-positive condition at all: the greedy
+OR-rule is empty and a depth-2 tree reaches 0.9278, the majority-class rate. That is the negative
+control the scanner needed.
 
 ## 7. What was wrong with the release
 
@@ -149,8 +173,9 @@ The weights were the least of it.
   the agreement, display "Built with Llama", and start the model name with "Llama". My repo said
   `apache-2.0`, had no licence file, and was called DelaySentinel.
 - **Attribution.** The training script was a copy of `acon96/home-llm`'s `train.py` (MIT, with
-  Stanford Alpaca portions under Apache-2.0) with no credit. Upstream has since removed the file,
-  so the repo now pins the commit it matched and ships both licence texts.
+  Stanford Alpaca portions under Apache-2.0) with no credit. It now sits in `scripts/` unchanged
+  and unformatted, with a header naming the upstream revision it matches and the three small edits
+  I made to it.
 - **The card.** It promised a Gradio Space that did not exist, linked a placeholder repository,
   showed a usage snippet with the wrong repo id, an invented prompt format and a foreign schema,
   and described the task as prediction "before shipment" with "order-level features". It contained
@@ -171,7 +196,7 @@ The weights were the least of it.
   silently shrink any validation set to 10% of its rows.
 
 All of this is fixed in the v1.0.0 release (`CHANGELOG.md`); none of it required touching the
-weights. The Hub side is pushed by `scripts/publish_hf.py` once the author runs it.
+weights. The Hub side is pushed by `scripts/publish_hf.py` once I run it.
 
 ## 8. What I would do differently, in order
 
@@ -181,26 +206,29 @@ weights. The Hub side is pushed by `scripts/publish_hf.py` once the author runs 
 3. **Decide what each field is known at.** For a delay model: checkout, approval, carrier handoff
    or delivery. Anything observed at or after the outcome is not a feature, and a field that
    *defines* the label is not a feature at any time.
-4. **Freeze the split and the protocol before touching the test set.** Seeded split, a separate
-   validation period, prevalence and trivial baselines written down, metrics chosen in advance.
-5. **Report intervals and baselines next to every number.** Wilson or Clopper-Pearson for
-   accuracy; bootstrap when there is something to resample; the all-positive rate on the same line.
-6. **Probe, do not just score.** Counterfactual edits are cheap and tell you what the model uses;
-   design the synonym and negation probes before training, not after.
+4. **Freeze the split and the protocol before touching the test set.** A seeded split, a
+   validation period separate from the test period, prevalence and trivial baselines written down,
+   metrics chosen in advance.
+5. **Report intervals and baselines next to every number,** and pick the interval that matches the
+   question: order-level bootstrap for "how precise is this estimate", month-block for "would it
+   hold next period".
+6. **Probe, do not just score.** Counterfactual edits are cheap and tell you what the model uses.
+   Design the synonym, negation and control-word probes before training; a probe suite without
+   control words cannot tell a specific trigger from a reaction to anything unfamiliar.
 7. **Attribute and license before publishing.** A header on borrowed code, the right licence tag,
    the required notices, and a check that stops the card from quoting numbers no file contains.
 
 ## 9. Why this leads to BizHallu
 
-The lesson is not "LLMs are bad at tables". It is that a model can be *right for the wrong
-reason* and that a confident answer is not evidence of understanding: a 1.24-billion-parameter
-model answered `1` to `Shipment_Status: Not Delayed` with the same margin it gave the real thing.
-That is the question my current project, [BizHallu](https://github.com/Yuchi-Wang02/bizhallu),
-studies at the level of individual business-fact spans in LLM-generated retail analysis: is each
-claim grounded in the transaction evidence, and can that be checked? The habits I use there,
-frozen splits with hashes, trivial baselines and bootstrap intervals on the same line as every
-metric, explicit limitations, and cards that only quote numbers a committed JSON contains, started
-as the fixes listed above.
+The lesson is not "LLMs are bad at tables". It is that a model can be *right for the wrong reason*
+and that a confident answer is not evidence of understanding: a 1.24-billion-parameter model
+answers `1` to `Shipment_Status: Not Delayed` with the same margin it gives the real thing. That is
+the question my current project, [BizHallu](https://github.com/Yuchi-Wang02/bizhallu), studies at
+the level of individual business-fact spans in LLM-generated retail analysis: is each claim
+grounded in the transaction evidence, and can that be checked? The habits I use there — frozen
+splits with hashes, trivial baselines and bootstrap intervals on the same line as every metric,
+explicit limitations, and cards that only quote numbers a committed JSON contains — started as the
+fixes listed above.
 
 ## 10. Reproduce
 

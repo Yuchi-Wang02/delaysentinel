@@ -1,5 +1,6 @@
 from delaysentinel.data import user_text
 from delaysentinel.probes import (
+    CONTROL_WORDS,
     DELAYED_VARIANTS,
     HEAVY_VARIANTS,
     NON_RULE_EDITS,
@@ -48,13 +49,16 @@ def test_counterfactual_probe_sizes(test_frame, test_rows):
 def test_counterfactual_summary_counts(test_frame, test_rows):
     users = [user_text(r) for r in test_rows]
     cf = counterfactual_probes(test_frame, users)
-    fake = {}
-    for p in cf:
-        fake[p.key] = {"n": len(p.texts), "matches_expected": len(p.texts)}
-    s = summarize_counterfactuals(fake, cf)
+    fake = {p.key: {"n": len(p.texts), "matches_expected": len(p.texts)} for p in cf}
+    s = summarize_counterfactuals(fake, cf, users)
     assert s["rule_field_edits"] == 50 + 43 + 84 + 84 == 261
     assert s["distinct_rows_with_rule_field_edit"] == 177
     assert s["non_rule_fields_probed_count"] == 13
+    assert s["non_rule_field_edits"] == 3200
+    assert s["non_rule_single_field_edits"] == 3000
+    assert s["non_rule_two_field_edits"] == 200
+    # some rows already carry the replacement value, so those "edits" change nothing at all
+    assert s["non_rule_field_edits_identical_to_the_original"] == 197
     assert s["non_rule_field_edits_that_changed_the_prediction"] == 0
 
 
@@ -76,8 +80,28 @@ def test_robustness_probe_construction(test_frame, test_rows):
     assert all(
         "Shipment_Status: Heavy" in t and "Traffic_Status: Delayed" in t for t in probes["trigger_swapped_fields"].texts
     )
-    # literal rule is undefined once a rule column is renamed; the remaining clause is defined when one is deleted
-    assert set(_literal_rule_on_texts(probes["rename_status_only"].texts)) == {None}
+
+
+def test_control_word_and_free_text_probes(test_frame, test_rows):
+    users = [user_text(r) for r in test_rows]
+    probes = _by_key(robustness_probes(test_frame, users))
+    assert len(CONTROL_WORDS) == 12
+    for word in CONTROL_WORDS:
+        assert len(probes[f"control_word_Shipment_Status_{word}"].texts) == 73
+        assert len(probes[f"control_word_Traffic_Status_{word}"].texts) == 66
+    for label in ("Heavy", "Delayed"):
+        p = probes[f"trigger_{label}_in_free_text"]
+        assert len(p.texts) == 84
+        # the 15 fields are untouched; one extra line is appended
+        assert all(t.startswith(users[i]) and t.count("\n") == 15 for i, t in zip(p.indices, p.texts, strict=False))
+        assert all(t.endswith(f"Mr. {label}") for t in p.texts)
+
+
+def test_remaining_clause_only_after_a_deletion(test_frame, test_rows):
+    users = [user_text(r) for r in test_rows]
+    probes = _by_key(robustness_probes(test_frame, users))
+    # a rename leaves 15 fields, so the single-clause reading is undefined
+    assert set(_remaining_clause_on_texts(probes["rename_status_only"].texts)) == {None}
     remaining = _remaining_clause_on_texts(probes["only_status_removed"].texts)
     assert None not in remaining and sum(remaining) == 66
 

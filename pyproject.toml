@@ -37,7 +37,8 @@ addopts = "-q"
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+# scripts/train.py is a third-party file kept byte-for-byte; legacy/ is the Sept 2025 code as it ran.
+extend-exclude = ["scripts/train.py", "legacy"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
-exclude = ["scripts/train.py", "legacy/**"]

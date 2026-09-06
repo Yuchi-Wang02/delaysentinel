@@ -13,22 +13,27 @@ committed).
 | `sc9201` | 65 | 3,250 | 8.63 → 4.60 (step 2400) → 4.64 | 70 (1.4) | no | `18b25eccf251bdff318548b325290234e9d016e8cd2617daadf281fb4261a10e` | `76ad179bacd2b153a1ae0c3076677a3db75c23035cc4e4ca863d0dd927771b04` |
 | `sc920` | 100 | 5,000 | 4.46 → 2.30 (step 3200) → 2.33 | 45 (0.9) | no | `8b13f1232b2bf491f220c803a4b5945d0cd702f0d4ccfcda8d1bc7e613979a2b` | `34f6b9cd7ba6cb538877d13adf7bc5539028218f113e453a0cae140904160143` |
 
-The `sc904` weight hash is the local file's sha256; `results/eval.json` → `provenance`
-records the LFS hash of `model.safetensors` on the Hub next to it (`weights_match_hub`).
+The `sc904` weight hash is the local file's sha256. `results/eval.json` → `provenance` records
+the LFS hash of `model.safetensors` on the Hub next to it; note that when the evaluation is run
+with a Hub id as `--model`, both hashes come from the same repository and their agreement is not
+an independent check (the JSON says so).
 
 Shared configuration (identical in all three `training_config.json` files): per-device
 batch 4 × gradient accumulation 4 = effective batch 16; learning rate 2e-5, cosine
 schedule, no warmup; weight decay 0.1; bf16; gradient checkpointing; `group_by_length`;
 seed 42; `adamw_torch_fused`; eval every 200 steps; checkpoint every 100 steps (3 kept);
-logging every 5 steps. The `transformers` version of the training environment is not in
-`training_args.bin`; the published checkpoint's `config.json` records `4.55.4`.
+logging every 5 steps. The `transformers` version of the *training* environment is not in
+`training_args.bin` and no file in this repository records it; the version in
+`results/eval.json` is the 2026 evaluation environment.
 
 ## Things the numbers do not show
 
 - **Wall-clock.** The command line and the GPU model were not logged. For `sc904` the two
   TensorBoard event files were created 1,090 s apart (`tensorboard_events.json`: first
   training log at epoch 1757017508, final `evaluate_all()` file at 1757018598), about
-  18 minutes. No `train_runtime` is present in the checkpoint's trainer state.
+  18 minutes from the first training log to the end of the run. Model loading and tokenisation
+  happened before the first log and are not included. No `train_runtime` is present in the
+  checkpoint's trainer state.
 - **The eval subset is the first 20 rows.** `CustomSFTTrainer._get_eval_sampler` draws
   `random.sample` indices but wraps them as `SequentialSampler(Subset(...))`; the sampler
   yields `0..19`, and the DataLoader indexes the *original* eval dataset with them. Every
@@ -52,9 +57,9 @@ logging every 5 steps. The `transformers` version of the training environment is
   the loss, so the model still stops.
 - **Why 30 / 65 / 100 epochs.** No record. The published run is the *earliest* (folder
   dated 2025-09-04), not the one with the lowest eval loss, so the epoch count was not
-  chosen on the test set. No checkpoint before step 1,300 survives, so *when* the rule was
-  learned cannot be probed; every probe in `results/eval.json` describes the final
-  step-1,500 weights.
+  chosen on the test set. No checkpoint before step 1,300 survives, so *when* the lexical
+  shortcut was learned cannot be probed; every probe in `results/eval.json` describes the
+  final step-1,500 weights.
 - **Which base checkpoint.** The training command line was not logged. The published
   `config.json` carries the Instruct `eos_token_id` list `[128001, 128008, 128009]` and the
   repository ships the Instruct `chat_template.jinja`; the base `Llama-3.2-1B` has a single

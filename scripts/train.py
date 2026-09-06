@@ -1,42 +1,36 @@
 #!/usr/bin/env python3
 
-# train.py -- adapted from acon96/home-llm train.py (https://github.com/acon96/home-llm),
-# an early revision matching upstream commit d352d88 (2025-11-30). Copyright 2024 Alex O'Connell,
-# MIT License; upstream's LICENSES.txt also records code re-used from tatsu-lab/stanford_alpaca
-# (Apache-2.0). See THIRD_PARTY_LICENSES.md for the full texts.
+# This file is NOT the author's work. It is kept byte-for-byte as it was run in September 2025,
+# apart from this header: train.py from acon96/home-llm (https://github.com/acon96/home-llm),
+# Copyright 2024 Alex O'Connell, MIT License. Upstream's LICENSES.txt also records code re-used
+# from tatsu-lab/stanford_alpaca (Apache-2.0; full text in LICENSES/Apache-2.0.txt). See
+# THIRD_PARTY_LICENSES.md.
 #
-# Local changes (Yuchi Wang, 2025): `_get_train_sampler(self, dataset)` signature updated for a
-# newer transformers release, LoRA defaults changed, two comments added. Only the SFT + ShareGPT
-# path was exercised for DelaySentinel; the S3 / MFU / DPO / LoRA / quantisation branches were
-# not used. Upstream removed train.py on 2025-12-01 (moved to Axolotl), hence the commit pin.
+# Upstream state: the last commit touching train.py before this project's training run was 136d2bf
+# (2025-02-26). The file was later removed from upstream main (the Axolotl migration began with
+# 55f2541 on 2025-12-01). Differences from 136d2bf, listed from an actual diff, are in
+# THIRD_PARTY_LICENSES.md; they are three small edits and no new functionality.
 #
-# Known quirks inherited from upstream and documented in runs/RUNS.md: the eval subsample is the
+# Only the SFT + ShareGPT path was exercised for DelaySentinel; the S3 upload, MFU, DPO, LoRA and
+# quantisation branches were not used. Quirks documented in runs/RUNS.md: the eval subsample is the
 # first 10% of rows (SequentialSampler over a Subset), the cosine schedule plans for 1.15x the
 # training steps, and the collator masks real <|eot_id|> tokens when no pad token is defined.
 
-import copy
 import math
+import copy
+import torch
 import os
 import random
 import time
 import traceback
-from collections.abc import Sequence
-from dataclasses import dataclass, field
 
-import torch
-from datasets import load_dataset
-from torch.utils.data import RandomSampler, SequentialSampler, Subset
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    GPTQConfig,
-    HfArgumentParser,
-    Trainer,
-    TrainerCallback,
-    TrainingArguments,
-)
+from torch.utils.data import SequentialSampler, Subset, RandomSampler
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer, \
+    HfArgumentParser, GPTQConfig, AutoConfig, TrainerCallback, BitsAndBytesConfig
 from transformers.integrations.integration_utils import TensorBoardCallback
+from datasets import load_dataset
+from dataclasses import dataclass, field
+from typing import Dict, Optional, Sequence
 
 IS_DDP_ENABLED = "LOCAL_RANK" in os.environ
 MULTI_GPU_WORLD_SIZE = int(os.environ.get("WORLD_SIZE", "1"))
@@ -44,172 +38,69 @@ MULTI_GPU_RANK = int(os.environ.get("RANK", "0"))
 IS_MULTI_GPU = os.environ.get("RANK") != None
 IS_MASTER_PROCESS = MULTI_GPU_RANK == 0
 
-
 @dataclass
 class TrainingRunArguments:
     run_name: str = field(metadata={"help": "The folder to save the output model under"})
     base_model: str = field(metadata={"help": "The base model to load for fine-tuning"})
     train_dataset: str = field(metadata={"help": "The JSON file containing the training dataset"})
     test_dataset: str = field(default=None, metadata={"help": "The JSON file containing the evaluation dataset"})
-    dataset_processing_threads: int = field(
-        default=None, metadata={"help": "The number of threads to use to tokenize the dataset"}
-    )
-    ctx_size: int = field(
-        default=2048, metadata={"help": "The number of tokens to pad & truncate the input examples to"}
-    )
-    bf16: bool = field(
-        default=False, metadata={"help": "If set, the model will the loaded and trained in bf16 instead of fp32"}
-    )
-    batch_size: int = field(
-        default=8,
-        metadata={"help": "The simulated 'batch size' that we will train on. will tweak gradient accumulations steps"},
-    )
-    micro_batch_size: int = field(
-        default=2, metadata={"help": "The actual batch size that will fit into VRAM on this machine"}
-    )
+    dataset_processing_threads: int = field(default=None, metadata={"help": "The number of threads to use to tokenize the dataset"})
+    ctx_size: int = field(default=2048, metadata={"help": "The number of tokens to pad & truncate the input examples to"})
+    bf16: bool = field(default=False, metadata={"help": "If set, the model will the loaded and trained in bf16 instead of fp32"})
+    batch_size: int = field(default=8, metadata={"help": "The simulated 'batch size' that we will train on. will tweak gradient accumulations steps"})
+    micro_batch_size: int = field(default=2, metadata={"help": "The actual batch size that will fit into VRAM on this machine"})
     epochs: int = field(default=1, metadata={"help": "The number of times to train the model on each example"})
-    learning_rate: float = field(
-        default=1e-5, metadata={"help": "The starting learning rate (speed at which the model trains)"}
-    )
-    learning_rate_schedule: str = field(
-        default="cosine", metadata={"help": "How fast the learning rate is reduced during training"}
-    )
-    learning_rate_warmup: float = field(
-        default=0.0, metadata={"help": "The starting learning rate (speed at which the model trains)"}
-    )
-    weight_decay: float = field(
-        default=0.1,
-        metadata={"help": "Weight Decay rate for regularization. Rate to reduce all neuron weights towards zero."},
-    )
+    learning_rate: float = field(default=1e-5, metadata={"help": "The starting learning rate (speed at which the model trains)"})
+    learning_rate_schedule: str = field(default="cosine", metadata={"help": "How fast the learning rate is reduced during training"})
+    learning_rate_warmup: float = field(default=0.0, metadata={"help": "The starting learning rate (speed at which the model trains)"})
+    weight_decay: float = field(default=0.1, metadata={"help": "Weight Decay rate for regularization. Rate to reduce all neuron weights towards zero."})
     # dropout: float = field(default=0.01, metadata={"help": "Dropout percent for regularization. Determines the fraction of neurons randomly deactivated during training."})
-    gradient_clip: float = field(
-        default=1.0,
-        metadata={"help": "Maximum gradient norm for clipping to prevent exploding gradients during training."},
-    )
-    resume_from_checkpoint: str = field(
-        default="", metadata={"help": "The name of the checkpoint to resume training from"}
-    )
-    eval_steps: int = field(
-        default=200,
-        metadata={"help": "The number of steps in between evaluations of the model; set to -1 to evaluate every epoch"},
-    )
-    save_steps: int = field(
-        default=-1, metadata={"help": "The number of steps in between model checkpoints; set to -1 to save every epoch"}
-    )
-    save_total_limit: int = field(
-        default=1,
-        metadata={"help": "The number of recent checkpoints of the model to save (not including the final model)"},
-    )
-    logging_steps: int = field(
-        default=5, metadata={"help": "Sets the number of steps in between log output for the training run"}
-    )
-    group_by_length: bool = field(
-        default=False,
-        metadata={
-            "help": "If enabled, the training data will be grouped by length to optimize use of padding. Runs from longest to shortest examples."
-        },
-    )
-    gradient_checkpointing: bool = field(
-        default=False,
-        metadata={
-            "help": "Enables gradient checkpointing to saves VRAM at the cost of re-computing activations during the backwards pass"
-        },
-    )
-    pre_allocate_cuda_buffers: bool = field(
-        default=True,
-        metadata={
-            "help": "If enabled, runs a forward and backward pass on the model before training to force pytorch to allocate the correct size CUDA buffers up front"
-        },
-    )
+    gradient_clip: float = field(default=1.0, metadata={"help": "Maximum gradient norm for clipping to prevent exploding gradients during training."})
+    resume_from_checkpoint: str = field(default="", metadata={"help": "The name of the checkpoint to resume training from"})
+    eval_steps: int = field(default=200, metadata={"help": "The number of steps in between evaluations of the model; set to -1 to evaluate every epoch"})
+    save_steps: int = field(default=-1, metadata={"help": "The number of steps in between model checkpoints; set to -1 to save every epoch"})
+    save_total_limit: int = field(default=1, metadata={"help": "The number of recent checkpoints of the model to save (not including the final model)"})
+    logging_steps: int = field(default=5, metadata={"help": "Sets the number of steps in between log output for the training run"})
+    group_by_length: bool = field(default=False, metadata={"help": "If enabled, the training data will be grouped by length to optimize use of padding. Runs from longest to shortest examples."})
+    gradient_checkpointing: bool = field(default=False, metadata={"help": "Enables gradient checkpointing to saves VRAM at the cost of re-computing activations during the backwards pass"})
+    pre_allocate_cuda_buffers: bool = field(default=True, metadata={"help": "If enabled, runs a forward and backward pass on the model before training to force pytorch to allocate the correct size CUDA buffers up front"})
 
     # Quantization
-    load_in_8bit: bool = field(
-        default=False, metadata={"help": "Set to load the base model in 8-bit mode using bitsandbytes"}
-    )
-    load_in_4bit: bool = field(
-        default=False, metadata={"help": "Set to load the base model in 4-bit mode using bitsandbytes"}
-    )
+    load_in_8bit: bool = field(default=False, metadata={"help": "Set to load the base model in 8-bit mode using bitsandbytes"})
+    load_in_4bit: bool = field(default=False, metadata={"help": "Set to load the base model in 4-bit mode using bitsandbytes"})
     load_as_gptq: bool = field(default=False, metadata={"help": "Set to load the base model as a GPTQ using AutoGPTQ"})
 
     # lora config
     use_lora: bool = field(default=False, metadata={"help": "If set, then the trained model will be a LoRA"})
-    lora_rank: int = field(
-        default=4,
-        metadata={
-            "help": "Rank which determines LoRA matrix size. Rank typically starts at 8 but can go up to 256. Higher ranks can store more information but increase the computational and memory cost of LoRA."
-        },
-    )
-    lora_alpha: int = field(
-        default=32,
-        metadata={
-            "help": "Alpha a scaling factor for updates. Alpha directly impacts the adapters contribution and is often set to 1x or 2x the rank value."
-        },
-    )
+    lora_rank: int = field(default=4, metadata={"help": "Rank which determines LoRA matrix size. Rank typically starts at 8 but can go up to 256. Higher ranks can store more information but increase the computational and memory cost of LoRA."})
+    lora_alpha: int = field(default=32, metadata={"help": "Alpha a scaling factor for updates. Alpha directly impacts the adapters contribution and is often set to 1x or 2x the rank value."})
     lora_dropout: float = field(default=0.05)
-    lora_modules: str = field(
-        default=None,
-        metadata={
-            "help": "Target modules: LoRA can be applied to various model components, including attention mechanisms (Q, K, V matrices), output projections, feed-forward blocks, and linear output layers. While initially focused on attention mechanisms, extending LoRA to other components has shown benefits. However, adapting more modules increases the number of trainable parameters and memory needs."
-        },
-    )
+    lora_modules: str = field(default=None, metadata={"help": "Target modules: LoRA can be applied to various model components, including attention mechanisms (Q, K, V matrices), output projections, feed-forward blocks, and linear output layers. While initially focused on attention mechanisms, extending LoRA to other components has shown benefits. However, adapting more modules increases the number of trainable parameters and memory needs."})
     lora_modules_to_save: str = field(default=None, metadata={"help": "Additional modules to save"})
-    lora_merge: bool = field(
-        default=False, metadata={"help": "If set, the Lora will be merged back into the base model an saved"}
-    )
+    lora_merge: bool = field(default=False, metadata={"help": "If set, the Lora will be merged back into the base model an saved"})
 
     # dpo config
-    dpo: bool = field(
-        default=False,
-        metadata={"help": "If set, performs Direct Preference Optimization instead of Supervised Fine Tuning"},
-    )
+    dpo: bool = field(default=False, metadata={"help": "If set, performs Direct Preference Optimization instead of Supervised Fine Tuning"})
     beta: float = field(default=0.1, metadata={"help": "The implicit reward value used during DPO training"})
     dpo_loss: str = field(default="sigmoid", metadata={"help": "The loss type to use during DPO training"})
 
     # token options
-    add_pad_token: bool = field(
-        default=False, metadata={"help": "If set, a pad token will be added to the tokenizer's vocabulary"}
-    )
-    add_chatml_tokens: bool = field(
-        default=False, metadata={"help": "If set, tokens for the ChatML format will be added specifically"}
-    )
-    add_chatml_prompt_template: bool = field(
-        default=False,
-        metadata={"help": "If set, the ChatML prompt template will be set as the model's Jinja2 template"},
-    )
-    prefix_ids: str = field(
-        default=None,
-        metadata={
-            "help": "Determine the prefix tokens that surround the response from the assistant for SFT if model can not correctly recognize response."
-        },
-    )
-    suffix_ids: str = field(
-        default=None,
-        metadata={
-            "help": "Determine the suffix tokens that surround the response from the assistant for SFT if model can not correctly recognize response."
-        },
-    )
+    add_pad_token: bool = field(default=False, metadata={"help": "If set, a pad token will be added to the tokenizer's vocabulary"})
+    add_chatml_tokens: bool = field(default=False, metadata={"help": "If set, tokens for the ChatML format will be added specifically"})
+    add_chatml_prompt_template: bool = field(default=False, metadata={"help": "If set, the ChatML prompt template will be set as the model's Jinja2 template"})
+    prefix_ids: str = field(default=None, metadata={"help": "Determine the prefix tokens that surround the response from the assistant for SFT if model can not correctly recognize response."})
+    suffix_ids: str = field(default=None, metadata={"help": "Determine the suffix tokens that surround the response from the assistant for SFT if model can not correctly recognize response."})
 
     # custom trainer tweaks
-    sync_to_bucket: str = field(
-        default=None,
-        metadata={"help": "If set, checkpoints will be synced to the s3 bucket specified by this argument"},
-    )
-    bucket_save_limit: int = field(
-        default=None,
-        metadata={
-            "help": "The number of recent checkpoints of the model to save in S3 (not including the final model)"
-        },
-    )
-    flops_baseline: str = field(
-        default=None, metadata={"help": "The baseline flops for the GPUs used for the training run. Outputs MFU"}
-    )
+    sync_to_bucket: str = field(default=None, metadata={"help": "If set, checkpoints will be synced to the s3 bucket specified by this argument"})
+    bucket_save_limit: int = field(default=None, metadata={"help": "The number of recent checkpoints of the model to save in S3 (not including the final model)"})
+    flops_baseline: str = field(default=None, metadata={"help": "The baseline flops for the GPUs used for the training run. Outputs MFU"})
 
 
 class UploadToS3Callback(TrainerCallback):
     def __init__(self, s3_bucket, s3_prefix, save_total_limit=None):
         import boto3
-
-        self.s3_client = boto3.client("s3")
+        self.s3_client = boto3.client('s3')
         self.s3_bucket = s3_bucket
         self.s3_prefix = s3_prefix
         self.save_total_limit = save_total_limit
@@ -232,27 +123,20 @@ class UploadToS3Callback(TrainerCallback):
             s3_checkpoints = self.list_s3_checkpoints()
             if len(s3_checkpoints) > self.save_total_limit:
                 sorted_checkpoints = sorted(s3_checkpoints)
-                to_delete = sorted_checkpoints[: -self.save_total_limit]
+                to_delete = sorted_checkpoints[:-self.save_total_limit]
                 for checkpoint in to_delete:
                     self.delete_checkpoint_from_s3(checkpoint)
 
     def list_s3_checkpoints(self):
-        paginator = self.s3_client.get_paginator("list_objects_v2")
-        page_iterator = paginator.paginate(Bucket=self.s3_bucket, Prefix=self.s3_prefix + "/", Delimiter="/")
-        return [
-            prefix.get("Prefix").rstrip("/").split("/")[-1]
-            for page in page_iterator
-            for prefix in page.get("CommonPrefixes", [])
-        ]
+        paginator = self.s3_client.get_paginator('list_objects_v2')
+        page_iterator = paginator.paginate(Bucket=self.s3_bucket, Prefix=self.s3_prefix + '/', Delimiter='/')
+        return [prefix.get('Prefix').rstrip('/').split('/')[-1] for page in page_iterator for prefix in page.get('CommonPrefixes', [])]
 
     def delete_checkpoint_from_s3(self, checkpoint_name):
-        resp = self.s3_client.list_objects_v2(
-            Bucket=self.s3_bucket, Prefix=os.path.join(self.s3_prefix, checkpoint_name)
-        )
-        for obj in resp.get("Contents", []):
-            self.s3_client.delete_object(Bucket=self.s3_bucket, Key=obj["Key"])
+        resp = self.s3_client.list_objects_v2(Bucket=self.s3_bucket, Prefix=os.path.join(self.s3_prefix, checkpoint_name))
+        for obj in resp.get('Contents', []):
+            self.s3_client.delete_object(Bucket=self.s3_bucket, Key=obj['Key'])
             print(f"Deleted s3://{self.s3_bucket}/{obj['Key']}")
-
 
 class MFUCallback(TrainerCallback):
     def __init__(self, peak_flops):
@@ -270,7 +154,7 @@ class MFUCallback(TrainerCallback):
 
         # Calculate and log MFU
         new_flops = state.total_flos - self.last_total_flos
-        kwargs["logs"]["mfu"] = round(new_flops / elapsed_time / self.flops_promised, 4)
+        kwargs['logs']['mfu'] = round(new_flops / elapsed_time / self.flops_promised, 4)
 
         self.start_time = current_time
         self.last_total_flos = state.total_flos
@@ -280,22 +164,21 @@ def ddp_print(*args, **kwargs):
     if not IS_DDP_ENABLED or IS_MASTER_PROCESS:
         print(*args, **kwargs)
 
-
 def find_max_vram(min_buffer_mib=800):
     max_memory = {}
     for i in range(torch.cuda.device_count()):
         gpu_properties = torch.cuda.get_device_properties(i)
-        total_memory_mib = gpu_properties.total_memory / (1000 * 1000)
+        total_memory_mib = (gpu_properties.total_memory / (1000 * 1000))
         suggestion = max(total_memory_mib - 1000, min_buffer_mib)
 
         ddp_print(f"GPU {i}: {gpu_properties.name}, Total Memory: {gpu_properties.total_memory / (1024**3):.2f} GB")
         ddp_print(f"Model will target using {suggestion}MiB of VRAM on GPU {i}")
-        max_memory[i] = f"{suggestion}MiB"
+        max_memory[i] = f'{suggestion}MiB'
 
     return max_memory
 
 
-class DataCollatorForSupervisedFineTuning:
+class DataCollatorForSupervisedFineTuning(object):
     """Collate examples for supervised fine-tuning."""
 
     tokenizer: AutoTokenizer
@@ -305,15 +188,13 @@ class DataCollatorForSupervisedFineTuning:
     prefix_ids: list[int]
     suffix_ids: list[int]
 
-    def __init__(
-        self, *, tokenizer: AutoTokenizer, prefix_ids: list[int] | None = None, suffix_ids: list[int] | None = None
-    ):
+    def __init__(self, *, tokenizer: AutoTokenizer, prefix_ids: Optional[list[int]] = None, suffix_ids: Optional[list[int]] = None):
 
         self.tokenizer = tokenizer
         if not prefix_ids and not suffix_ids:
             assistant_prompt = tokenizer.apply_chat_template(
-                conversation=[{"role": "assistant", "content": r"%%%%%%%%%%%%%%%%"}], tokenize=False
-            ).split(r"%%%%%%%%%%%%%%%%")
+                conversation=[{"role": "assistant", "content":  r"%%%%%%%%%%%%%%%%"}],
+                tokenize=False).split( r"%%%%%%%%%%%%%%%%")
 
             self.response_prefix = assistant_prompt[0]
             self.response_suffix = assistant_prompt[1]
@@ -353,7 +234,7 @@ class DataCollatorForSupervisedFineTuning:
                 break
 
             # Check if the entire prefix is present
-            if input_ids[start_idx : start_idx + len(self.prefix_ids)] == self.prefix_ids:
+            if input_ids[start_idx:start_idx + len(self.prefix_ids)] == self.prefix_ids:
                 end_prefix_idx = start_idx + len(self.prefix_ids)
                 start_response_idx = end_prefix_idx + 1
 
@@ -366,7 +247,7 @@ class DataCollatorForSupervisedFineTuning:
                     break
 
                 # Check if the entire suffix is present
-                if input_ids[suffix_start_idx : suffix_start_idx + len(self.suffix_ids)] == self.suffix_ids:
+                if input_ids[suffix_start_idx:suffix_start_idx + len(self.suffix_ids)] == self.suffix_ids:
                     ranges.append((start_response_idx, suffix_start_idx))
                     i = suffix_start_idx + len(self.suffix_ids)
                 else:
@@ -396,7 +277,7 @@ class DataCollatorForSupervisedFineTuning:
 
         return result
 
-    def __call__(self, instances: Sequence[dict]) -> dict[str, torch.Tensor]:
+    def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
         input_ids = [instance["input_ids"] for instance in instances]
         labels = copy.deepcopy(input_ids)
 
@@ -426,12 +307,11 @@ def tokenize_raw_example(batch, tokenizer=None, training_run_args=None):
         add_special_tokens=False,
     )
 
-
 def tokenize_sharegpt_example(batch, tokenizer=None, training_run_args=None):
     # TODO: figure out how to properly batch this
     result = []
     for example in batch["conversations"]:
-        conversation = [{"role": x["from"], "content": x["value"]} for x in example]
+        conversation = [ { "role": x["from"], "content": x["value"] }  for x in example ]
         result.append(
             tokenizer.apply_chat_template(
                 conversation=conversation,
@@ -442,14 +322,13 @@ def tokenize_sharegpt_example(batch, tokenizer=None, training_run_args=None):
 
     return {"input_ids": result}
 
-
 def template_dpo_example(batch, tokenizer=None, training_run_args=None):
     # TODO: figure out how to properly batch this
     result = []
     for example in zip(batch["system"], batch["question"]):
         conversation = [
-            {"role": "system", "content": example[0]},
-            {"role": "user", "content": example[1]},
+            { "role": "system", "content": example[0] },
+            { "role": "user", "content": example[1] },
         ]
         result.append(
             tokenizer.apply_chat_template(
@@ -457,19 +336,20 @@ def template_dpo_example(batch, tokenizer=None, training_run_args=None):
                 max_length=training_run_args.ctx_size,
                 truncation=True,
                 tokenize=False,
-                add_generation_prompt=True,
+                add_generation_prompt=True
             )
         )
 
     return {"prompt": result}
 
 
+import random
 import torch
-
+from torch.utils.data import RandomSampler, SequentialSampler, Subset
+from transformers import Trainer
 
 class CustomSFTTrainer(Trainer):
     """Implement different training tweaks"""
-
     def __init__(self, random_eval_sample_pct=0.1, learning_rate_overshoot=1.15, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.random_eval_sample_pct = random_eval_sample_pct
@@ -496,7 +376,7 @@ class CustomSFTTrainer(Trainer):
         """Train sampler that groups by length or uses random sampling."""
         if self.args.group_by_length:
             return super()._get_train_sampler(dataset)
-        return RandomSampler(dataset, generator=torch.Generator(device="cpu"))
+        return RandomSampler(dataset, generator=torch.Generator(device='cpu'))
 
     def create_scheduler(self, num_training_steps: int, optimizer: torch.optim.Optimizer = None):
         """
@@ -526,6 +406,7 @@ class CustomSFTTrainer(Trainer):
         return result
 
 
+
 def do_training_run(training_run_args: TrainingRunArguments):
     # validate args + build model kwargs
     if sum([training_run_args.load_in_8bit, training_run_args.load_in_4bit, training_run_args.load_as_gptq]) > 1:
@@ -535,9 +416,7 @@ def do_training_run(training_run_args: TrainingRunArguments):
     if training_run_args.load_in_8bit:
         model_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
     elif training_run_args.load_in_4bit:
-        model_kwargs["quantization_config"] = BitsAndBytesConfig(
-            load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16
-        )
+        model_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
     elif training_run_args.load_as_gptq:
         model_kwargs["quantization_config"] = GPTQConfig(bits=4, disable_exllama=True)
 
@@ -564,17 +443,20 @@ def do_training_run(training_run_args: TrainingRunArguments):
         model_path,  # 使用本地路径
         max_memory=find_max_vram(),
         token=os.environ.get("HF_TOKEN"),
-        **model_kwargs,  # 其他模型参数
+        **model_kwargs  # 其他模型参数
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, token=os.environ.get("HF_TOKEN"))
     # mess with tokens + prompt template
     if training_run_args.add_pad_token:
-        tokenizer.add_special_tokens({"pad_token": "<|pad|>"})
+        tokenizer.add_special_tokens({'pad_token': '<|pad|>'})
         model.config.pad_token_id = tokenizer.pad_token_id
 
     if training_run_args.add_chatml_tokens:
-        tokenizer.add_special_tokens({"bos_token": "<|im_start|>", "eos_token": "<|im_end|>"})
+        tokenizer.add_special_tokens({
+            'bos_token': '<|im_start|>',
+            'eos_token': '<|im_end|>'
+        })
 
         model.config.bos_token_id = tokenizer.bos_token_id
         model.config.eos_token_id = tokenizer.eos_token_id
@@ -601,12 +483,9 @@ def do_training_run(training_run_args: TrainingRunArguments):
     peft_config = None
     if training_run_args.use_lora:
         from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
-
         ddp_print("Creating LoRA for model...")
         target_modules = training_run_args.lora_modules.split(",") if training_run_args.lora_modules else None
-        modules_to_save = (
-            training_run_args.lora_modules_to_save.split(",") if training_run_args.lora_modules_to_save else None
-        )
+        modules_to_save = training_run_args.lora_modules_to_save.split(",") if training_run_args.lora_modules_to_save else None
         peft_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
             inference_mode=False,
@@ -632,18 +511,16 @@ def do_training_run(training_run_args: TrainingRunArguments):
     training_kwargs = {}
 
     if training_run_args.test_dataset:
-        training_kwargs.update(
-            {
-                "per_device_eval_batch_size": training_run_args.micro_batch_size,
-                "eval_strategy": ("steps" if training_run_args.eval_steps != -1 else "epoch"),
-                "eval_steps": (training_run_args.eval_steps if training_run_args.eval_steps != -1 else None),
-                "bf16_full_eval": training_run_args.bf16,
-            }
-        )
+        training_kwargs.update({
+            "per_device_eval_batch_size": training_run_args.micro_batch_size,
+            "eval_strategy": ("steps" if training_run_args.eval_steps != -1 else "epoch"),
+            "eval_steps": (training_run_args.eval_steps if training_run_args.eval_steps != -1 else None),
+            "bf16_full_eval": training_run_args.bf16,
+        })
 
     training_args = TrainingArguments(
         per_device_train_batch_size=training_run_args.micro_batch_size,
-        gradient_accumulation_steps=training_run_args.batch_size // training_run_args.micro_batch_size,
+        gradient_accumulation_steps=training_run_args.batch_size//training_run_args.micro_batch_size,
         gradient_checkpointing=training_run_args.gradient_checkpointing,
         weight_decay=training_run_args.weight_decay,
         max_grad_norm=training_run_args.gradient_clip,
@@ -654,7 +531,7 @@ def do_training_run(training_run_args: TrainingRunArguments):
         output_dir=model_dir,
         num_train_epochs=training_run_args.epochs,
         save_total_limit=training_run_args.save_total_limit,
-        report_to="none",
+        report_to='none',
         learning_rate=training_run_args.learning_rate,
         lr_scheduler_type=training_run_args.learning_rate_schedule,
         warmup_ratio=training_run_args.learning_rate_warmup,
@@ -668,15 +545,11 @@ def do_training_run(training_run_args: TrainingRunArguments):
     # set up trainer callbacks
     training_callbacks = []
     if training_run_args.sync_to_bucket:
-        training_callbacks.append(
-            UploadToS3Callback(
-                s3_bucket=training_run_args.sync_to_bucket,
-                s3_prefix=training_run_args.run_name,
-                save_total_limit=training_run_args.bucket_save_limit
-                if training_run_args.bucket_save_limit
-                else training_run_args.save_total_limit,
-            )
-        )
+        training_callbacks.append(UploadToS3Callback(
+            s3_bucket=training_run_args.sync_to_bucket,
+            s3_prefix=training_run_args.run_name,
+            save_total_limit=training_run_args.bucket_save_limit if training_run_args.bucket_save_limit else training_run_args.save_total_limit
+        ))
 
     if training_run_args.flops_baseline:
         # A100 40/80GB GPU bfloat16 peak flops is 312 TFLOPS (312e12)
@@ -690,7 +563,7 @@ def do_training_run(training_run_args: TrainingRunArguments):
 
     if not training_run_args.dpo:
         ddp_print("Loading dataset...")
-        data_files = {"train": training_run_args.train_dataset}
+        data_files = { "train": training_run_args.train_dataset }
         if training_run_args.test_dataset:
             data_files["test"] = training_run_args.test_dataset
         datasets = load_dataset("json", data_files=data_files)
@@ -711,41 +584,21 @@ def do_training_run(training_run_args: TrainingRunArguments):
         num_proc = None
         if training_run_args.dataset_processing_threads:
             num_proc = training_run_args.dataset_processing_threads // MULTI_GPU_WORLD_SIZE
-        tokenized_train_dataset = (
-            datasets["train"]
-            .map(
-                tokenize_function,
-                batched=True,
-                num_proc=num_proc,
-                fn_kwargs={"tokenizer": tokenizer, "training_run_args": training_run_args},
-            )
-            .remove_columns(columns_to_remove)
-        )
+        tokenized_train_dataset = datasets["train"].map(tokenize_function, batched=True, num_proc=num_proc, fn_kwargs={"tokenizer": tokenizer, "training_run_args": training_run_args}).remove_columns(columns_to_remove)
         if training_run_args.test_dataset:
-            tokenized_test_dataset = (
-                datasets["test"]
-                .map(
-                    tokenize_function,
-                    batched=True,
-                    num_proc=num_proc,
-                    fn_kwargs={"tokenizer": tokenizer, "training_run_args": training_run_args},
-                )
-                .remove_columns(columns_to_remove)
-            )
+            tokenized_test_dataset = datasets["test"].map(tokenize_function, batched=True, num_proc=num_proc, fn_kwargs={"tokenizer": tokenizer, "training_run_args": training_run_args}).remove_columns(columns_to_remove)
 
-        example_lengths = [len(example) for example in tokenized_train_dataset["input_ids"]]
+        example_lengths = [ len(example) for example in tokenized_train_dataset["input_ids"] ]
         tokens_in_train_set, longest_example = sum(example_lengths), max(example_lengths)
-        ddp_print(
-            f"Train dataset has {int(tokens_in_train_set / 1000000)}M tokens. Longest Example: {longest_example} tokens"
-        )
+        ddp_print(f"Train dataset has {int(tokens_in_train_set / 1000000)}M tokens. Longest Example: {longest_example} tokens")
 
         provided_prefix_ids = None
         provided_suffix_ids = None
         try:
             if training_run_args.prefix_ids:
-                provided_prefix_ids = [int(x) for x in training_run_args.prefix_ids.split(",")]
+                provided_prefix_ids = [ int(x) for x in training_run_args.prefix_ids.split(",") ]
             if training_run_args.suffix_ids:
-                provided_suffix_ids = [int(x) for x in training_run_args.suffix_ids.split(",")]
+                provided_suffix_ids = [ int(x) for x in training_run_args.suffix_ids.split(",") ]
         except ValueError as ex:
             print(f"Error parsing prefix_ids or suffix_ids: '{ex}'")
             exit(-1)
@@ -807,11 +660,7 @@ def do_training_run(training_run_args: TrainingRunArguments):
         # )
 
     try:
-        trainer.train(
-            resume_from_checkpoint=training_run_args.resume_from_checkpoint
-            if training_run_args.resume_from_checkpoint
-            else None
-        )
+        trainer.train(resume_from_checkpoint=training_run_args.resume_from_checkpoint if training_run_args.resume_from_checkpoint else None)
 
         if training_run_args.test_dataset:
             trainer.evaluate_all()
@@ -820,7 +669,7 @@ def do_training_run(training_run_args: TrainingRunArguments):
             trainer.accelerator.state.fsdp_plugin.set_state_dict_type("FULL_STATE_DICT")
 
         if training_run_args.use_lora and training_run_args.lora_merge:
-            trainer.save_model()  # save lora
+            trainer.save_model() # save lora
 
             merged_model = model.merge_and_unload(progressbar=True)
             merged_model_dir = f"./models/{training_run_args.run_name}"
@@ -833,8 +682,7 @@ def do_training_run(training_run_args: TrainingRunArguments):
 
         if training_run_args.sync_to_bucket:
             import boto3
-
-            s3_client = boto3.client("s3")
+            s3_client = boto3.client('s3')
 
             for root, dirs, files in os.walk(model_dir):
                 for file in files:
@@ -845,7 +693,7 @@ def do_training_run(training_run_args: TrainingRunArguments):
 
     except Exception as ex:
         if trainer.is_fsdp_enabled:
-            raise ex  # this doesn't play nice with FSDP so don't even try
+            raise ex # this doesn't play nice with FSDP so don't even try
 
         traceback.print_exc()
 
@@ -854,7 +702,6 @@ def do_training_run(training_run_args: TrainingRunArguments):
             print("Saved Checkpoint!")
 
         exit(-1)
-
 
 if __name__ == "__main__":
     parser = HfArgumentParser([TrainingRunArguments])

@@ -18,13 +18,8 @@
 80       # 80/20 split
 95       # 95% intervals
 100      # percentages; 100-epoch run
-106      # CSV size in KB
-177      # 50 + 43 + 84 counterfactual flips on the rule fields (each addend is in eval.json)
 9        # "9 月" (September) in the Chinese summary
 1.15     # scheduler overshoot factor inherited from upstream
-1725     # 1500 * 1.15 planned scheduler steps
-1090     # seconds between the first and last TensorBoard event file of run sc904
-18       # minutes, rounded from 1090 s
 1.24     # 1,235,814,400 parameters rounded to billions
 1.2      # ditto
 2024     # year
@@ -37,7 +32,6 @@
 128256   # vocabulary size
 0.6      # sampling temperature in the original generation_config
 0.9      # top_p in the original generation_config
-2e-5     # learning rate (2e-05 in training_config.json)
 0.1      # weight decay
 0.05     # alpha for 95% CI
 90       # latitude bound
@@ -45,9 +39,7 @@
 1.b      # license clause
 i        # license clause
 iii      # license clause
-261      # 50 + 43 + 84 + 84 rule-field edits (also in eval.json counterfactual_probe._summary)
 5070     # GPU name (RTX 5070 Ti)
-4.55     # version prefix of transformers 4.55.4
 512      # max_new_tokens of the legacy Flask app
 6        # section numbers / list positions
 7        # section numbers / list positions
@@ -60,10 +52,20 @@ iii      # license clause
 2016     # Olist data years
 2017     # Olist data years
 2018     # Olist data years / split date
-36       # test count (pytest --co)
-74       # probe sets in the model run (37 counterfactual + 33 robustness + 4 ood)
-32       # non-rule probe sets (13 fields x negatives/positives + 6 reason variants)
 1.7      # version prefix of scikit-learn 1.7.2
 4.0      # CC BY-NC-SA 4.0
 -90      # latitude bound
 -180     # longitude bound
+# --- counts that no result file stores directly are derived by the script itself
+# (probe_set_counts from results/eval.json, test functions from tests/), so they are not listed here.
+1090     # seconds between the two TensorBoard event files of run sc904 (runs/sc904/tensorboard_events.json)
+18       # the same interval in minutes
+1725     # 1500 * 1.15 planned scheduler steps (the factor and the step count are both in runs/)
+106      # CSV size in KB as displayed on the Kaggle page
+177      # distinct test rows edited by the four rule-field probes (50 + 43 + 84)
+2018     # Olist split year
+105482   # size in bytes of the committed data/smart_logistics_dataset.csv (LF)
+24       # 12 control words x 2 rule fields = the control probe sets (CONTROL_WORDS in src/delaysentinel/probes.py)
+12       # control words
+5e-5     # the rounding boundary of the 4-decimal training log, quoted in runs/RUNS.md as an explanation, not as a result
+1e-6     # the unit of the eval-loss column in runs/RUNS.md and README.md, not a value

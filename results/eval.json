@@ -2,8 +2,8 @@
  "provenance": {
   "package_version": "1.0.0",
   "command_line": "eval.py --model Yuchiwang02/DelaySentinel --hub-model-id Yuchiwang02/Llama-3.2-1B-DelaySentinel --out results/eval.json --predictions-out results/test_predictions.csv --seed 0",
-  "timestamp_utc": "2026-09-06T00:33:49+00:00",
-  "git_commit": "9091e5576a2eff6c21edb833ca80d6558b3789f8",
+  "timestamp_utc": "2026-09-06T05:51:01+00:00",
+  "git_commit": "52f44c6d26513ffc73824995d057dff78d473a57-dirty",
   "seed": 0,
   "hash_note": "file hashes are sha256 over newline-normalized bytes (CRLF -> LF); on an LF checkout they equal the raw file hash",
   "csv_sha256": "e5d080a1d64f15713f000be403a44d4ad329cbece11a0523a8c186406a6ed7a6",
@@ -20,7 +20,8 @@
   "hub_model_safetensors_sha256": "ffc509c65c539157905ccc5e469b1b37e30fe816aa9130477f57f0a3dfc2cd47",
   "hub_id_used_for_hash": "Yuchiwang02/DelaySentinel",
   "weights_match_hub": true,
-  "total_seconds": 340.9
+  "weights_match_hub_note": "trivially true when --model is itself a Hub id, because both hashes then come from the same repository; it is an independent check only when --model is a local directory",
+  "total_seconds": 266.4
  },
  "split": {
   "train_n": 800,
@@ -547,7 +548,7 @@
   "torch_version": "2.8.0+cu128",
   "transformers_version": "4.55.4",
   "python_version": "3.10.18",
-  "load_seconds": 24.5,
+  "load_seconds": 2.4,
   "score_available": true,
   "label_token_ids": {
    "0": 15,
@@ -559,7 +560,7 @@
    "batch_size": 16,
    "template_date_string": "04 Sep 2025"
   },
-  "test_inference_seconds": 3.82,
+  "test_inference_seconds": 3.11,
   "raw_output_examples": [
    "Logistics_Delay: 0",
    "Logistics_Delay: 0",
@@ -1807,6 +1808,9 @@
    "rule_field_edits_flipped_as_expected": 261,
    "distinct_rows_with_rule_field_edit": 177,
    "non_rule_field_edits": 3200,
+   "non_rule_single_field_edits": 3000,
+   "non_rule_two_field_edits": 200,
+   "non_rule_field_edits_identical_to_the_original": 197,
    "non_rule_field_edits_that_changed_the_prediction": 0,
    "non_rule_fields_probed": [
     "Asset_ID",
@@ -1866,7 +1870,6 @@
    "expected": null,
    "expected_kind": "gold",
    "acc_vs_original_gold": 1.0,
-   "agreement_with_remaining_clause": 0.75,
    "margin": {
     "min": -20.25,
     "max": 14.375,
@@ -1892,7 +1895,6 @@
    "expected": null,
    "expected_kind": "gold",
    "acc_vs_original_gold": 1.0,
-   "agreement_with_remaining_clause": 0.785,
    "margin": {
     "min": -20.562,
     "max": 14.0,
@@ -2257,6 +2259,38 @@
     "Logistics_Delay: 1"
    ]
   },
+  "value_Delayed_to_Delay": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Delay' (shared_token)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 73
+   },
+   "pred_pos_rate": 1.0,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "gold is 1 for every such row; the literal rule no longer fires",
+   "meta": {
+    "variant_kind": "shared_token",
+    "field": "Shipment_Status",
+    "value": "Delay"
+   },
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.3151,
+   "margin": {
+    "min": 12.75,
+    "max": 14.125,
+    "abs_median": 13.5,
+    "abs_min": 12.75
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
   "value_Heavy_to_HEAVY": {
    "group": "robustness",
    "description": "rows with Traffic_Status == Heavy; write the value as 'HEAVY' (case)",
@@ -2609,6 +2643,38 @@
     "Logistics_Delay: 1"
    ]
   },
+  "value_Heavy_to_Heav": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Heav' (shared_token)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 66
+   },
+   "pred_pos_rate": 1.0,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "gold is 1 for every such row; the literal rule no longer fires",
+   "meta": {
+    "variant_kind": "shared_token",
+    "field": "Traffic_Status",
+    "value": "Heav"
+   },
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.3485,
+   "margin": {
+    "min": 12.125,
+    "max": 13.875,
+    "abs_median": 12.75,
+    "abs_min": 12.125
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
   "shuffle_column_order_seed0": {
    "group": "robustness",
    "description": "all rows; permute the 15 lines with a fixed seed",
@@ -2920,6 +2986,840 @@
     "Logistics_Delay: 0"
    ]
   },
+  "control_word_Shipment_Status_Copper": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Copper' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Copper"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.625,
+    "max": 13.625,
+    "abs_median": 17.5,
+    "abs_min": 12.375
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Copper": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Copper' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Copper"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.438,
+    "max": 13.875,
+    "abs_median": 17.875,
+    "abs_min": 12.875
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Violet": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Violet' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Violet"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.625,
+    "max": 13.625,
+    "abs_median": 17.5,
+    "abs_min": 12.375
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Violet": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Violet' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Violet"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.25,
+    "max": 13.75,
+    "abs_median": 18.0,
+    "abs_min": 12.75
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Harbor": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Harbor' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Harbor"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.25,
+    "max": 13.875,
+    "abs_median": 17.25,
+    "abs_min": 12.75
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Harbor": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Harbor' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Harbor"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.875,
+    "max": 14.375,
+    "abs_median": 17.188,
+    "abs_min": 13.125
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Maple": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Maple' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Maple"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.375,
+    "max": 13.5,
+    "abs_median": 17.25,
+    "abs_min": 12.375
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Maple": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Maple' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Maple"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.125,
+    "max": 13.625,
+    "abs_median": 17.625,
+    "abs_min": 12.75
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Quartz": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Quartz' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Quartz"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.5,
+    "max": 13.625,
+    "abs_median": 17.5,
+    "abs_min": 12.5
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Quartz": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Quartz' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Quartz"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.375,
+    "max": 13.75,
+    "abs_median": 17.875,
+    "abs_min": 12.75
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Falcon": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Falcon' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Falcon"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.375,
+    "max": 13.75,
+    "abs_median": 17.375,
+    "abs_min": 12.625
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Falcon": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Falcon' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Falcon"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.312,
+    "max": 13.75,
+    "abs_median": 17.812,
+    "abs_min": 12.875
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Meadow": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Meadow' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Meadow"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -18.5,
+    "max": 13.625,
+    "abs_median": 16.125,
+    "abs_min": 12.375
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Meadow": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Meadow' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 33,
+    "1": 33
+   },
+   "pred_pos_rate": 0.5,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Meadow"
+   },
+   "acc_vs_original_gold": 0.5,
+   "agreement_with_literal_rule_on_rewritten_text": 0.8485,
+   "margin": {
+    "min": -14.625,
+    "max": 13.75,
+    "abs_median": 12.625,
+    "abs_min": 0.5
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Cobalt": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Cobalt' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Cobalt"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.625,
+    "max": 13.625,
+    "abs_median": 17.625,
+    "abs_min": 12.625
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Cobalt": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Cobalt' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Cobalt"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.375,
+    "max": 13.875,
+    "abs_median": 17.938,
+    "abs_min": 12.875
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Lantern": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Lantern' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Lantern"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.25,
+    "max": 13.75,
+    "abs_median": 17.375,
+    "abs_min": 12.5
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Lantern": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Lantern' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Lantern"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.25,
+    "max": 14.0,
+    "abs_median": 17.75,
+    "abs_min": 12.875
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Marble": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Marble' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Marble"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.25,
+    "max": 13.625,
+    "abs_median": 17.25,
+    "abs_min": 12.375
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Marble": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Marble' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Marble"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.125,
+    "max": 13.75,
+    "abs_median": 17.562,
+    "abs_min": 12.875
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Willow": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Willow' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Willow"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.5,
+    "max": 13.625,
+    "abs_median": 17.375,
+    "abs_min": 12.375
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Willow": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Willow' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Willow"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.375,
+    "max": 13.75,
+    "abs_median": 17.75,
+    "abs_min": 12.875
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Shipment_Status_Amber": {
+   "group": "robustness",
+   "description": "rows with Shipment_Status == Delayed; write the value as 'Amber' (unrelated single-token word)",
+   "n": 73,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 50,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3151,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Shipment_Status",
+    "value": "Amber"
+   },
+   "acc_vs_original_gold": 0.3151,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -19.375,
+    "max": 13.625,
+    "abs_median": 17.375,
+    "abs_min": 12.375
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "control_word_Traffic_Status_Amber": {
+   "group": "robustness",
+   "description": "rows with Traffic_Status == Heavy; write the value as 'Amber' (unrelated single-token word)",
+   "n": 66,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 43,
+    "1": 23
+   },
+   "pred_pos_rate": 0.3485,
+   "expected": null,
+   "expected_kind": "gold",
+   "notes": "base rate for an unseen value in this field; gold is 1 for every such row",
+   "meta": {
+    "variant_kind": "control_word",
+    "field": "Traffic_Status",
+    "value": "Amber"
+   },
+   "acc_vs_original_gold": 0.3485,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -20.25,
+    "max": 13.75,
+    "abs_median": 17.75,
+    "abs_min": 12.75
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "trigger_Heavy_in_free_text": {
+   "group": "robustness",
+   "description": "all negatives; append a free-text line containing 'Heavy' outside any known field",
+   "n": 84,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 84,
+    "1": 0
+   },
+   "pred_pos_rate": 0.0,
+   "expected": 0,
+   "expected_kind": "unchanged",
+   "notes": "a field-bound rule keeps 0; a detector that scans the whole turn fires",
+   "meta": {
+    "trigger_placement": true,
+    "free_text": true,
+    "value": "Heavy"
+   },
+   "matches_expected": 84,
+   "acc_vs_original_gold": 1.0,
+   "agreement_with_literal_rule_on_rewritten_text": 1.0,
+   "margin": {
+    "min": -17.5,
+    "max": -8.5,
+    "abs_median": 14.875,
+    "abs_min": 8.5
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0",
+    "Logistics_Delay: 0"
+   ]
+  },
+  "trigger_Delayed_in_free_text": {
+   "group": "robustness",
+   "description": "all negatives; append a free-text line containing 'Delayed' outside any known field",
+   "n": 84,
+   "unparsable": 0,
+   "pred_counts": {
+    "0": 0,
+    "1": 84
+   },
+   "pred_pos_rate": 1.0,
+   "expected": 0,
+   "expected_kind": "unchanged",
+   "notes": "a field-bound rule keeps 0; a detector that scans the whole turn fires",
+   "meta": {
+    "trigger_placement": true,
+    "free_text": true,
+    "value": "Delayed"
+   },
+   "matches_expected": 0,
+   "acc_vs_original_gold": 0.0,
+   "agreement_with_literal_rule_on_rewritten_text": 0.0,
+   "margin": {
+    "min": 7.5,
+    "max": 9.125,
+    "abs_median": 8.0,
+    "abs_min": 7.5
+   },
+   "raw_output_examples": [
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1",
+    "Logistics_Delay: 1"
+   ]
+  },
   "rule_fields_oov": {
    "group": "robustness",
    "description": "all rows; Shipment_Status = Unknown and Traffic_Status = N/A (values never seen in training)",
@@ -3036,5 +3936,11 @@
     "Logistics_Delay: 0"
    ]
   }
+ },
+ "probe_set_counts": {
+  "counterfactual": 37,
+  "robustness": 63,
+  "ood": 4,
+  "total": 104
  }
 }
