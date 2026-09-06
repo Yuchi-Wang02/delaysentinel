@@ -4,7 +4,10 @@ Design choices, all deliberate and all different from the original ``app.py``:
 
 - the tokenizer's own ``<|finetune_right_pad_id|>`` is used for batching, so no new pad
   token is added and the embedding matrix is never resized at inference time;
-- decoding is greedy with ``max_new_tokens=8`` (the answer is five tokens long);
+- decoding is greedy with ``max_new_tokens=8`` (the answer ``Logistics_Delay: 0`` is six
+  tokens plus ``<|eot_id|>``; 8 leaves one token of slack);
+- the chat template's ``Today Date`` line is pinned to a constant so prompts are
+  byte-identical across runs (the template would otherwise insert the current date);
 - the answer is parsed with an anchored regex; a non-match is reported as
   ``unparsable`` and is never silently mapped to 0;
 - an optional teacher-forced score compares the logits of the ``0`` and ``1`` tokens
@@ -13,11 +16,12 @@ Design choices, all deliberate and all different from the original ``app.py``:
 
 from __future__ import annotations
 
+import hashlib
 import platform
 import time
 from collections.abc import Sequence
 
-from .prompting import ANSWER_PREFIX, build_messages, parse_label
+from .prompting import ANSWER_PREFIX, TEMPLATE_DATE_STRING, build_messages, parse_label
 
 PAD_TOKEN = "<|finetune_right_pad_id|>"
 EXPECTED_VOCAB = 128256
@@ -58,12 +62,19 @@ class Scorer:
         self.score_available = len(ids0) == len(ids1) and ids0[:-1] == ids1[:-1]
         self.answer_prefix_ids = ids0[:-1]
         self.label_ids = {0: ids0[-1], 1: ids1[-1]}
+        self.answer_token_count = len(ids0)
 
     # ------------------------------------------------------------------ info
+    def rendered_system_turn(self) -> str:
+        """The system turn exactly as the template renders it (with the pinned date)."""
+        full = self._prompts(["<user>"])[0]
+        return full.split("<|start_header_id|>user<|end_header_id|>")[0]
+
     def info(self) -> dict:
         import torch
         import transformers
 
+        system_turn = self.rendered_system_turn()
         return {
             "model_id": self.model_id,
             "params": int(sum(p.numel() for p in self.model.parameters())),
@@ -73,6 +84,10 @@ class Scorer:
             "tokenizer_len": len(self.tok),
             "pad_token": PAD_TOKEN,
             "pad_token_id": self.pad_id,
+            "template_date_string": TEMPLATE_DATE_STRING,
+            "rendered_system_turn": system_turn,
+            "rendered_system_turn_sha256": hashlib.sha256(system_turn.encode("utf-8")).hexdigest(),
+            "answer_token_count": self.answer_token_count,
             "torch_version": torch.__version__,
             "transformers_version": transformers.__version__,
             "python_version": platform.python_version(),
@@ -84,7 +99,12 @@ class Scorer:
     # -------------------------------------------------------------- encoding
     def _prompts(self, user_texts: Sequence[str]) -> list[str]:
         return [
-            self.tok.apply_chat_template(build_messages(u), add_generation_prompt=True, tokenize=False)
+            self.tok.apply_chat_template(
+                build_messages(u),
+                add_generation_prompt=True,
+                tokenize=False,
+                date_string=TEMPLATE_DATE_STRING,
+            )
             for u in user_texts
         ]
 
@@ -131,8 +151,9 @@ class Scorer:
         """Teacher-forced logit margin ``logit(1) - logit(0)`` after ``Logistics_Delay:``.
 
         Diagnostic only: the model was trained to emit a hard label, so these scores
-        are expected to be saturated. Returns an empty list if the prefix tokenisation
-        is not shared between the two answers.
+        are expected to be saturated. Position ids are built from the attention mask so
+        that left padding does not shift the rotary positions. Returns an empty list if
+        the prefix tokenisation is not shared between the two answers.
         """
         import torch
 
@@ -146,14 +167,11 @@ class Scorer:
                 enc = self._encode(prompts[start : start + self.batch_size])
                 bsz = enc["input_ids"].shape[0]
                 ids = torch.cat([enc["input_ids"], prefix.unsqueeze(0).repeat(bsz, 1).to(self.device)], dim=1)
-                mask = torch.cat(
-                    [
-                        enc["attention_mask"],
-                        torch.ones(bsz, len(prefix), dtype=enc["attention_mask"].dtype, device=self.device),
-                    ],
-                    dim=1,
-                )
-                logits = self.model(input_ids=ids, attention_mask=mask).logits[:, -1, :].float()
+                ones = torch.ones(bsz, len(prefix), dtype=enc["attention_mask"].dtype, device=self.device)
+                mask = torch.cat([enc["attention_mask"], ones], dim=1)
+                position_ids = (mask.long().cumsum(-1) - 1).clamp(min=0)
+                logits = self.model(input_ids=ids, attention_mask=mask, position_ids=position_ids).logits[:, -1, :]
+                logits = logits.float()
                 l0 = logits[:, self.label_ids[0]]
                 l1 = logits[:, self.label_ids[1]]
                 p1 = torch.softmax(torch.stack([l0, l1], dim=1), dim=1)[:, 1]

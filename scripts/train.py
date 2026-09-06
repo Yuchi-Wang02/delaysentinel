@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # train.py -- adapted from acon96/home-llm train.py (https://github.com/acon96/home-llm),
 # an early revision matching upstream commit d352d88 (2025-11-30). Copyright 2024 Alex O'Connell,
 # MIT License; upstream's LICENSES.txt also records code re-used from tatsu-lab/stanford_alpaca
@@ -11,7 +13,6 @@
 # Known quirks inherited from upstream and documented in runs/RUNS.md: the eval subsample is the
 # first 10% of rows (SequentialSampler over a Subset), the cosine schedule plans for 1.15x the
 # training steps, and the collator masks real <|eot_id|> tokens when no pad token is defined.
-#!/usr/bin/env python3
 
 import copy
 import math

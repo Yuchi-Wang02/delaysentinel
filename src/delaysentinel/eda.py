@@ -195,6 +195,54 @@ def fig_training(runs_dir: Path, out: Path) -> Path:
     return path
 
 
+def fig_positive_control(pc: dict, out: Path) -> Path:
+    """Precision-recall at fixed thresholds and a reliability diagram for the Olist positive control."""
+    models = pc["models"]
+    prevalence = pc["data"]["test_late_rate"]
+    fig, axes = plt.subplots(1, 2, figsize=(9.2, 3.8))
+    ax = axes[0]
+    for name, color, label in (
+        ("logistic_regression", BLUE, "logistic regression"),
+        ("hist_gradient_boosting", ORANGE, "hist. gradient boosting"),
+    ):
+        curve = [r for r in models[name]["pr_curve"] if r["precision"] is not None and r["flagged_share"] > 0]
+        ax.plot([r["recall"] for r in curve], [r["precision"] for r in curve], lw=1.6, color=color, label=label)
+    ax.axhline(prevalence, color=MUTED, lw=1, ls="--")
+    ax.text(0.99, prevalence + 0.006, f"prevalence {prevalence:.3f}", ha="right", fontsize=8, color=INK2)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, max(0.4, ax.get_ylim()[1]))
+    ax.set_xlabel("recall of late orders")
+    ax.set_ylabel("precision among flagged orders")
+    ax.set_title("Olist test period: precision-recall at thresholds 0.02-0.60", loc="left", fontsize=10.5)
+    ax.legend(frameon=False, fontsize=8.5, loc="upper right")
+    ax = axes[1]
+    rel = [r for r in models["logistic_regression"]["reliability"] if r["n"] >= 30]
+    ax.plot([0, 0.5], [0, 0.5], color=MUTED, lw=1, ls="--")
+    ax.plot([r["mean_pred"] for r in rel], [r["observed_rate"] for r in rel], marker="o", ms=4, lw=1.6, color=BLUE)
+    for r in rel:
+        ax.annotate(
+            f"n={r['n']:,}",
+            (r["mean_pred"], r["observed_rate"]),
+            textcoords="offset points",
+            xytext=(6, -10),
+            fontsize=7.5,
+            color=INK2,
+        )
+    ax.set_xlim(0, 0.5)
+    ax.set_ylim(0, 0.5)
+    ax.set_xlabel("mean predicted probability (bins with n >= 30)")
+    ax.set_ylabel("observed late rate")
+    ax.set_title("Logistic regression reliability (test period)", loc="left", fontsize=10.5)
+    _footer(
+        fig, "Olist orders, train < 2018-03-01, test >= 2018-03-01; numbers from results/olist_positive_control.json"
+    )
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    path = out / "fig_positive_control.png"
+    fig.savefig(path, dpi=160)
+    plt.close(fig)
+    return path
+
+
 def main(argv: list[str] | None = None) -> list[Path]:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--csv", default=str(ROOT / "data" / "smart_logistics_dataset.csv"))
@@ -209,6 +257,10 @@ def main(argv: list[str] | None = None) -> list[Path]:
     if Path(args.eval).exists():
         with open(args.eval, encoding="utf-8") as handle:
             paths.append(fig_probes(json.load(handle), out))
+    pc_path = Path(args.eval).with_name("olist_positive_control.json")
+    if pc_path.exists():
+        with open(pc_path, encoding="utf-8") as handle:
+            paths.append(fig_positive_control(json.load(handle), out))
     for p in paths:
         print("wrote", p)
     return paths

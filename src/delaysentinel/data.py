@@ -81,15 +81,27 @@ def rule_predict(frame: pd.DataFrame) -> np.ndarray:
 
 
 def rule_crosstab(frame: pd.DataFrame, label_column: str = TARGET) -> dict:
-    """Counts behind the rule: rows and delayed rows for each clause and for the remainder."""
-    delayed = frame["Shipment_Status"].astype(str) == "Delayed"
-    heavy = frame["Traffic_Status"].astype(str) == "Heavy"
+    """Counts behind the rule: rows and delayed rows for each clause, for the remainder,
+    and for every Shipment_Status x Traffic_Status cell."""
+    status = frame["Shipment_Status"].astype(str)
+    traffic = frame["Traffic_Status"].astype(str)
+    delayed = status == "Delayed"
+    heavy = traffic == "Heavy"
     y = frame[label_column].astype(int)
     neither = ~(delayed | heavy)
+    cells = {}
+    for s in sorted(status.unique()):
+        for t in sorted(traffic.unique()):
+            mask = (status == s) & (traffic == t)
+            cells[f"{s} x {t}"] = {"rows": int(mask.sum()), "delayed": int(y[mask].sum())}
+    delivered_heavy = (status == "Delivered") & heavy
     return {
         "shipment_status_delayed": {"rows": int(delayed.sum()), "delayed": int(y[delayed].sum())},
         "traffic_status_heavy": {"rows": int(heavy.sum()), "delayed": int(y[heavy].sum())},
+        "both": {"rows": int((delayed & heavy).sum()), "delayed": int(y[delayed & heavy].sum())},
         "neither": {"rows": int(neither.sum()), "delayed": int(y[neither].sum())},
+        "delivered_and_heavy": {"rows": int(delivered_heavy.sum()), "delayed": int(y[delivered_heavy].sum())},
+        "status_x_traffic_cells": cells,
         "mismatches": int((rule_predict(frame) != y.to_numpy()).sum()),
         "n": len(frame),
     }
@@ -104,8 +116,20 @@ def category_counts(frame: pd.DataFrame) -> dict[str, dict[str, int]]:
 
 
 def sha256_file(path: str | Path) -> str:
+    """sha256 of the file bytes exactly as they are on disk."""
     digest = hashlib.sha256()
     with open(path, "rb") as handle:
         for chunk in iter(lambda: handle.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def sha256_normalized_newlines(path: str | Path) -> str:
+    """sha256 after mapping CRLF to LF, so a Windows and a Linux checkout agree.
+
+    The values recorded in ``data/SPLIT.md`` are computed this way; on an LF checkout they
+    equal :func:`sha256_file`.
+    """
+    with open(path, "rb") as handle:
+        data = handle.read().replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()

@@ -110,6 +110,8 @@ def classification_metrics(
         prob = np.asarray(prob, dtype=float)
         out["auroc"] = round(float(roc_auc_score(y, prob)), 4)
         if len(np.unique(prob)) <= 2:
-            out["auroc_note"] = "scores are effectively hard labels; AUROC carries no ranking information"
+            out["auroc_note"] = (
+                "scores are effectively hard labels; AUROC restates accuracy and adds no calibration or uncertainty"
+            )
         out["auroc_ci_bootstrap"] = [round(v, 4) for v in bootstrap_ci(roc_auc_score, y, prob, n_boot, seed)]
     return out

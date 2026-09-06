@@ -5,15 +5,14 @@ Requires a *write* token in the local Hugging Face credential store
 (`hf auth login` / `huggingface-cli login`). Nothing here touches the model weights.
 
     python scripts/publish_hf.py --dry-run          # show the plan only
-    python scripts/publish_hf.py --rename           # move DelaySentinel -> Llama-3.2-1B-DelaySentinel first
-    python scripts/publish_hf.py --model --dataset --space
+    python scripts/publish_hf.py                    # rename, dataset, space, model card (in that order)
 
-Steps
-  --rename   move Yuchiwang02/DelaySentinel to Yuchiwang02/Llama-3.2-1B-DelaySentinel (Hub keeps a redirect)
-  --model    upload README.md, LICENSE, USE_POLICY.md, NOTICE, THIRD_PARTY_LICENSES.md, fixed
-             generation_config.json / config.json, results/, docs/figures/; delete app.py and templates/
+Steps (default order)
+  --rename   move Yuchiwang02/DelaySentinel to Yuchiwang02/Llama-3.2-1B-DelaySentinel (the Hub keeps a redirect)
   --dataset  create Yuchiwang02/smart-logistics-delay-split-v0 with the CSV, the frozen JSONL split and SPLIT.md
-  --space    create the Gradio Space Yuchiwang02/delaysentinel-leakage-demo from space/ plus a copy of src/
+  --space    create the Gradio Space Yuchiwang02/delaysentinel-leakage-demo from space/ plus src/ and the licences
+  --model    upload README.md, licences, results/, runs/, docs/, fixed generation_config.json / config.json;
+             delete app.py and templates/ (done last so every link in the card resolves when it goes live)
 """
 
 from __future__ import annotations
@@ -31,20 +30,31 @@ NEW_MODEL_ID = "Yuchiwang02/Llama-3.2-1B-DelaySentinel"
 DATASET_ID = "Yuchiwang02/smart-logistics-delay-split-v0"
 SPACE_ID = "Yuchiwang02/delaysentinel-leakage-demo"
 
-MODEL_FILES = [
-    "README.md",
+LICENCE_FILES = [
     "LICENSE",
     "USE_POLICY.md",
     "NOTICE",
     "THIRD_PARTY_LICENSES.md",
+    "LICENSE-MIT",
+    "LICENSES/Apache-2.0.txt",
+]
+MODEL_FILES = [
+    "README.md",
+    *LICENCE_FILES,
+    "CHANGELOG.md",
     "results/eval.json",
     "results/test_predictions.csv",
     "results/leakage_audit.json",
     "runs/RUNS.md",
     "runs/sc904/training_config.json",
     "runs/sc904/trainer_state.json",
+    "runs/sc904/tensorboard_events.json",
+    "data/SPLIT.md",
+    "docs/case_study.md",
+    "docs/case_study.zh.md",
 ]
 MODEL_DELETE = ["app.py", "templates/index.html"]
+SPACE_LICENCE_FILES = ["LICENSE", "USE_POLICY.md", "NOTICE", "LICENSE-MIT"]
 GENERATION_CONFIG = {
     "bos_token_id": 128000,
     "eos_token_id": [128001, 128008, 128009],
@@ -125,13 +135,18 @@ def publish_dataset(hf, dry_run: bool) -> None:
 
 
 def publish_space(hf, dry_run: bool) -> None:
-    print(f"[{SPACE_ID}] upload space/app.py, space/requirements.txt, space/README.md, src/delaysentinel/*")
+    print(
+        f"[{SPACE_ID}] upload space/app.py, space/requirements.txt, space/README.md, "
+        f"{', '.join(SPACE_LICENCE_FILES)}, src/delaysentinel/*"
+    )
     if dry_run:
         return
     hf.create_repo(SPACE_ID, repo_type="space", space_sdk="gradio", exist_ok=True)
     tmp = Path(tempfile.mkdtemp())
     for name in ("app.py", "requirements.txt", "README.md"):
         shutil.copy(ROOT / "space" / name, tmp / name)
+    for name in SPACE_LICENCE_FILES:
+        shutil.copy(ROOT / name, tmp / name)
     shutil.copytree(
         ROOT / "src" / "delaysentinel", tmp / "src" / "delaysentinel", ignore=shutil.ignore_patterns("__pycache__")
     )
@@ -178,12 +193,12 @@ def main(argv: list[str] | None = None) -> int:
     elif not args.dry_run:
         existing = {m.id for m in hf.list_models(author="Yuchiwang02")}
         repo_id = NEW_MODEL_ID if NEW_MODEL_ID in existing else OLD_MODEL_ID
-    if args.model:
-        publish_model(hf, repo_id, args.dry_run)
     if args.dataset:
         publish_dataset(hf, args.dry_run)
     if args.space:
         publish_space(hf, args.dry_run)
+    if args.model:
+        publish_model(hf, repo_id, args.dry_run)
     return 0
 
 

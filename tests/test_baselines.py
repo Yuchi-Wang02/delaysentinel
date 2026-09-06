@@ -8,7 +8,13 @@ def test_frozen_split_baselines(train_frame, test_frame):
     assert res["decision_tree_depth2"]["acc"] == 1.0
     assert res["logistic_regression"]["acc"] == 1.0
     assert res["all_positive"]["acc"] == 0.58
-    assert res["gradient_boosting_without_rule_fields"]["acc"] < 0.7
+    for name in (
+        "gradient_boosting_without_rule_fields",
+        "gradient_boosting_without_rule_fields_and_reason",
+        "gradient_boosting_without_rule_fields_plus_time",
+    ):
+        assert res[name]["acc"] < 0.7, name
+        assert res[name]["auroc"] < 0.65, name
     assert (
         "Shipment_Status" in res["decision_tree_depth2"]["tree_rules"]
         or "Traffic_Status" in res["decision_tree_depth2"]["tree_rules"]

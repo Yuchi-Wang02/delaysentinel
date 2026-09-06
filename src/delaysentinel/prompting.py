@@ -4,6 +4,10 @@ Everything here mirrors the original ``Transform.py`` (Sept 2025) byte for byte:
 the system prompt, the ``Column: value`` serialisation in CSV column order, and the
 assistant answer ``Logistics_Delay: 0|1``. Missing values reach the prompt as the
 literal string ``None`` because that is what the Kaggle CSV contains.
+
+The Llama 3.2 chat template writes ``Today Date: <date>`` into the system header. At
+training time that was the training day; at evaluation time it is pinned to
+:data:`TEMPLATE_DATE_STRING` so that prompts are byte-identical across runs.
 """
 
 from __future__ import annotations
@@ -17,6 +21,11 @@ SYSTEM_PROMPT = (
     "Assume you are a supply chain analyst. Based on the following information, "
     "output the result for Logistics_Delay, where 1 represents a delay and 0 represents no delay."
 )
+
+#: Date written into the chat template's ``Today Date:`` line during evaluation. The
+#: published run was trained on 2025-09-04 (TensorBoard event timestamps); the exact
+#: date string used at training time was not logged.
+TEMPLATE_DATE_STRING = "04 Sep 2025"
 
 #: The 15 input columns, in the order they appear in the Kaggle CSV and in every prompt.
 FIELDS: tuple[str, ...] = (

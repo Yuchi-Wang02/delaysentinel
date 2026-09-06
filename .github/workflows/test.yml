@@ -12,14 +12,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install
+      - name: Install (CPU, pinned to the versions that produced results/eval.json)
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-ci.txt
           pip install -e .
       - name: Unit tests (no model download)
         run: python -m pytest -q
-      - name: Every number in the README must exist in results/ or runs/
+      - name: Every number in the documents must exist in results/, runs/ or the reasoned allowlist
         run: python scripts/check_card_numbers.py
-      - name: Baselines-only evaluation must still run
-        run: python -m delaysentinel.eval --skip-model --skip-cv --out /tmp/eval_ci.json
+      - name: Baselines-only evaluation must reproduce the committed sklearn numbers
+        run: |
+          python -m delaysentinel.eval --skip-model --skip-cv --out /tmp/eval_ci.json
+          python - <<'EOF'
+          import json
+          a = json.load(open("/tmp/eval_ci.json"))["baselines_split_v0"]
+          b = json.load(open("results/eval.json"))["baselines_split_v0"]
+          for name, entry in b.items():
+              if isinstance(entry, dict) and "acc" in entry:
+                  for key in ("acc", "f1", "auroc", "confusion"):
+                      if key in entry:
+                          assert a[name][key] == entry[key], (name, key, a[name][key], entry[key])
+          print("baselines reproduced:", [n for n in b if isinstance(b[n], dict) and "acc" in b[n]])
+          EOF

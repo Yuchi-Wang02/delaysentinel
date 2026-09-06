@@ -1,0 +1,16 @@
+# Exact versions of the environment that produced results/eval.json,
+# results/olist_positive_control.json and docs/figures (Windows 11, Python 3.10,
+# RTX 5070 Ti, CUDA 12.8). Install with: pip install -r requirements-lock.txt
+accelerate==1.10.1
+gradio==5.50.0
+huggingface_hub==0.36.2
+matplotlib==3.10.9
+numpy==2.1.2
+pandas==2.3.2
+pytest==9.1.1
+safetensors==0.6.2
+scikit-learn==1.7.2
+scipy==1.15.3
+tokenizers==0.21.4
+torch==2.8.0
+transformers==4.55.4

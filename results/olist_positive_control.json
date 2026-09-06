@@ -1,0 +1,662 @@
+{
+ "provenance": {
+  "source": "Olist Brazilian E-Commerce Public Dataset (Kaggle olistbr/brazilian-ecommerce), downloaded from the Hub mirror aviahYadler/Olist_Ecommerce_Dataset",
+  "licence_note": "Olist is published on Kaggle under CC BY-NC-SA 4.0 (Kaggle page); used here non-commercially with attribution; the mirror carries no licence statement of its own",
+  "timestamp_utc": "2026-09-06T00:39:28+00:00",
+  "seed": 0,
+  "split": "time-based: train purchases < 2018-03-01, test purchases >= 2018-03-01 and <= cutoff",
+  "label": "late = delivered_customer_date > estimated_delivery_date (day granularity), delivered orders only",
+  "censoring_guard": "orders purchased within 60 days of the last purchase are excluded",
+  "features_known_at_checkout": [
+   "promised_lead_days",
+   "n_items",
+   "total_price",
+   "total_freight",
+   "payment_installments",
+   "distance_km",
+   "purchase_month",
+   "purchase_weekday",
+   "purchase_hour_bin",
+   "customer_state",
+   "seller_state",
+   "category",
+   "payment_type"
+  ]
+ },
+ "data": {
+  "orders_total": 99441,
+  "last_purchase_in_data": "2018-10-17",
+  "cutoff_purchase_date": "2018-08-18",
+  "orders_delivered": 96470,
+  "orders_delivered_before_cutoff": 95019,
+  "rows_modelled": 95019,
+  "late_rate_overall": 0.0685,
+  "train_n": 57317,
+  "test_n": 37702,
+  "train_late_rate": 0.066,
+  "test_late_rate": 0.0722
+ },
+ "models": {
+  "prevalence_constant": {
+   "n": 37702,
+   "auroc": 0.5,
+   "auprc": 0.0722,
+   "brier": 0.067,
+   "note": "constant probability equal to the training late rate; AUPRC of a random ranker equals prevalence"
+  },
+  "logistic_regression": {
+   "n": 37702,
+   "positives": 2722,
+   "prevalence": 0.0722,
+   "auroc": 0.7045,
+   "auroc_ci_bootstrap": [
+    0.6948,
+    0.7135
+   ],
+   "auprc": 0.1632,
+   "auprc_ci_bootstrap": [
+    0.1522,
+    0.1754
+   ],
+   "brier": 0.0653,
+   "threshold_sweep": [
+    {
+     "cost_ratio_expedite_over_chargeback": 0.05,
+     "threshold": 0.05,
+     "flagged_share": 0.267,
+     "recall_of_late_orders": 0.5158,
+     "precision_among_flagged": 0.1395
+    },
+    {
+     "cost_ratio_expedite_over_chargeback": 0.1,
+     "threshold": 0.1,
+     "flagged_share": 0.0742,
+     "recall_of_late_orders": 0.227,
+     "precision_among_flagged": 0.2209
+    },
+    {
+     "cost_ratio_expedite_over_chargeback": 0.2,
+     "threshold": 0.2,
+     "flagged_share": 0.0094,
+     "recall_of_late_orders": 0.0382,
+     "precision_among_flagged": 0.293
+    },
+    {
+     "cost_ratio_expedite_over_chargeback": 0.3,
+     "threshold": 0.3,
+     "flagged_share": 0.0016,
+     "recall_of_late_orders": 0.007,
+     "precision_among_flagged": 0.3167
+    },
+    {
+     "cost_ratio_expedite_over_chargeback": 0.5,
+     "threshold": 0.5,
+     "flagged_share": 0.0002,
+     "recall_of_late_orders": 0.0007,
+     "precision_among_flagged": 0.25
+    }
+   ],
+   "reliability": [
+    {
+     "bin": [
+      0.0,
+      0.1
+     ],
+     "n": 34904,
+     "mean_pred": 0.0344,
+     "observed_rate": 0.0603
+    },
+    {
+     "bin": [
+      0.1,
+      0.2
+     ],
+     "n": 2443,
+     "mean_pred": 0.1325,
+     "observed_rate": 0.2104
+    },
+    {
+     "bin": [
+      0.2,
+      0.3
+     ],
+     "n": 295,
+     "mean_pred": 0.2308,
+     "observed_rate": 0.2881
+    },
+    {
+     "bin": [
+      0.3,
+      0.4
+     ],
+     "n": 41,
+     "mean_pred": 0.3313,
+     "observed_rate": 0.3415
+    },
+    {
+     "bin": [
+      0.4,
+      0.5
+     ],
+     "n": 11,
+     "mean_pred": 0.4433,
+     "observed_rate": 0.2727
+    },
+    {
+     "bin": [
+      0.5,
+      0.6
+     ],
+     "n": 4,
+     "mean_pred": 0.5364,
+     "observed_rate": 0.25
+    },
+    {
+     "bin": [
+      0.6,
+      0.7
+     ],
+     "n": 1,
+     "mean_pred": 0.6162,
+     "observed_rate": 0.0
+    },
+    {
+     "bin": [
+      0.7,
+      0.8
+     ],
+     "n": 1,
+     "mean_pred": 0.7411,
+     "observed_rate": 0.0
+    },
+    {
+     "bin": [
+      0.8,
+      0.9
+     ],
+     "n": 1,
+     "mean_pred": 0.8302,
+     "observed_rate": 1.0
+    },
+    {
+     "bin": [
+      0.9,
+      1.0
+     ],
+     "n": 1,
+     "mean_pred": 0.9952,
+     "observed_rate": 0.0
+    }
+   ],
+   "pr_curve": [
+    {
+     "threshold": 0.02,
+     "flagged_share": 0.7322,
+     "recall": 0.9188,
+     "precision": 0.0906
+    },
+    {
+     "threshold": 0.04,
+     "flagged_share": 0.3711,
+     "recall": 0.633,
+     "precision": 0.1231
+    },
+    {
+     "threshold": 0.06,
+     "flagged_share": 0.1999,
+     "recall": 0.4287,
+     "precision": 0.1548
+    },
+    {
+     "threshold": 0.08,
+     "flagged_share": 0.1181,
+     "recall": 0.3123,
+     "precision": 0.191
+    },
+    {
+     "threshold": 0.1,
+     "flagged_share": 0.0742,
+     "recall": 0.227,
+     "precision": 0.2209
+    },
+    {
+     "threshold": 0.12,
+     "flagged_share": 0.0478,
+     "recall": 0.1598,
+     "precision": 0.2414
+    },
+    {
+     "threshold": 0.14,
+     "flagged_share": 0.0304,
+     "recall": 0.1069,
+     "precision": 0.2541
+    },
+    {
+     "threshold": 0.16,
+     "flagged_share": 0.0203,
+     "recall": 0.0768,
+     "precision": 0.2736
+    },
+    {
+     "threshold": 0.18,
+     "flagged_share": 0.014,
+     "recall": 0.0562,
+     "precision": 0.2903
+    },
+    {
+     "threshold": 0.2,
+     "flagged_share": 0.0094,
+     "recall": 0.0382,
+     "precision": 0.293
+    },
+    {
+     "threshold": 0.22,
+     "flagged_share": 0.0059,
+     "recall": 0.0257,
+     "precision": 0.3125
+    },
+    {
+     "threshold": 0.24,
+     "flagged_share": 0.0041,
+     "recall": 0.0187,
+     "precision": 0.3333
+    },
+    {
+     "threshold": 0.26,
+     "flagged_share": 0.0027,
+     "recall": 0.0121,
+     "precision": 0.3235
+    },
+    {
+     "threshold": 0.28,
+     "flagged_share": 0.0021,
+     "recall": 0.0092,
+     "precision": 0.3125
+    },
+    {
+     "threshold": 0.3,
+     "flagged_share": 0.0016,
+     "recall": 0.007,
+     "precision": 0.3167
+    },
+    {
+     "threshold": 0.32,
+     "flagged_share": 0.0012,
+     "recall": 0.0059,
+     "precision": 0.3556
+    },
+    {
+     "threshold": 0.34,
+     "flagged_share": 0.0008,
+     "recall": 0.0033,
+     "precision": 0.2812
+    },
+    {
+     "threshold": 0.36,
+     "flagged_share": 0.0006,
+     "recall": 0.0026,
+     "precision": 0.3043
+    },
+    {
+     "threshold": 0.38,
+     "flagged_share": 0.0005,
+     "recall": 0.0018,
+     "precision": 0.25
+    },
+    {
+     "threshold": 0.4,
+     "flagged_share": 0.0005,
+     "recall": 0.0018,
+     "precision": 0.2632
+    },
+    {
+     "threshold": 0.42,
+     "flagged_share": 0.0005,
+     "recall": 0.0018,
+     "precision": 0.2941
+    },
+    {
+     "threshold": 0.44,
+     "flagged_share": 0.0003,
+     "recall": 0.0015,
+     "precision": 0.3333
+    },
+    {
+     "threshold": 0.46,
+     "flagged_share": 0.0003,
+     "recall": 0.0015,
+     "precision": 0.3333
+    },
+    {
+     "threshold": 0.48,
+     "flagged_share": 0.0003,
+     "recall": 0.0011,
+     "precision": 0.3
+    },
+    {
+     "threshold": 0.5,
+     "flagged_share": 0.0002,
+     "recall": 0.0007,
+     "precision": 0.25
+    },
+    {
+     "threshold": 0.52,
+     "flagged_share": 0.0002,
+     "recall": 0.0007,
+     "precision": 0.25
+    },
+    {
+     "threshold": 0.54,
+     "flagged_share": 0.0002,
+     "recall": 0.0004,
+     "precision": 0.1667
+    },
+    {
+     "threshold": 0.56,
+     "flagged_share": 0.0001,
+     "recall": 0.0004,
+     "precision": 0.25
+    },
+    {
+     "threshold": 0.58,
+     "flagged_share": 0.0001,
+     "recall": 0.0004,
+     "precision": 0.25
+    },
+    {
+     "threshold": 0.6,
+     "flagged_share": 0.0001,
+     "recall": 0.0004,
+     "precision": 0.25
+    }
+   ]
+  },
+  "hist_gradient_boosting": {
+   "n": 37702,
+   "positives": 2722,
+   "prevalence": 0.0722,
+   "auroc": 0.6727,
+   "auroc_ci_bootstrap": [
+    0.6628,
+    0.6822
+   ],
+   "auprc": 0.1299,
+   "auprc_ci_bootstrap": [
+    0.1225,
+    0.1384
+   ],
+   "brier": 0.066,
+   "threshold_sweep": [
+    {
+     "cost_ratio_expedite_over_chargeback": 0.05,
+     "threshold": 0.05,
+     "flagged_share": 0.3306,
+     "recall_of_late_orders": 0.5533,
+     "precision_among_flagged": 0.1208
+    },
+    {
+     "cost_ratio_expedite_over_chargeback": 0.1,
+     "threshold": 0.1,
+     "flagged_share": 0.0931,
+     "recall_of_late_orders": 0.2072,
+     "precision_among_flagged": 0.1607
+    },
+    {
+     "cost_ratio_expedite_over_chargeback": 0.2,
+     "threshold": 0.2,
+     "flagged_share": 0.0118,
+     "recall_of_late_orders": 0.0338,
+     "precision_among_flagged": 0.2077
+    },
+    {
+     "cost_ratio_expedite_over_chargeback": 0.3,
+     "threshold": 0.3,
+     "flagged_share": 0.0015,
+     "recall_of_late_orders": 0.0044,
+     "precision_among_flagged": 0.2069
+    },
+    {
+     "cost_ratio_expedite_over_chargeback": 0.5,
+     "threshold": 0.5,
+     "flagged_share": 0.0,
+     "recall_of_late_orders": 0.0,
+     "precision_among_flagged": 0.0
+    }
+   ],
+   "reliability": [
+    {
+     "bin": [
+      0.0,
+      0.1
+     ],
+     "n": 34193,
+     "mean_pred": 0.0398,
+     "observed_rate": 0.0631
+    },
+    {
+     "bin": [
+      0.1,
+      0.2
+     ],
+     "n": 3066,
+     "mean_pred": 0.1317,
+     "observed_rate": 0.1539
+    },
+    {
+     "bin": [
+      0.2,
+      0.3
+     ],
+     "n": 385,
+     "mean_pred": 0.2336,
+     "observed_rate": 0.2078
+    },
+    {
+     "bin": [
+      0.3,
+      0.4
+     ],
+     "n": 54,
+     "mean_pred": 0.3385,
+     "observed_rate": 0.2037
+    },
+    {
+     "bin": [
+      0.4,
+      0.5
+     ],
+     "n": 4,
+     "mean_pred": 0.4397,
+     "observed_rate": 0.25
+    }
+   ],
+   "pr_curve": [
+    {
+     "threshold": 0.02,
+     "flagged_share": 0.8732,
+     "recall": 0.9747,
+     "precision": 0.0806
+    },
+    {
+     "threshold": 0.04,
+     "flagged_share": 0.4496,
+     "recall": 0.6811,
+     "precision": 0.1094
+    },
+    {
+     "threshold": 0.06,
+     "flagged_share": 0.2496,
+     "recall": 0.4386,
+     "precision": 0.1269
+    },
+    {
+     "threshold": 0.08,
+     "flagged_share": 0.1481,
+     "recall": 0.2917,
+     "precision": 0.1422
+    },
+    {
+     "threshold": 0.1,
+     "flagged_share": 0.0931,
+     "recall": 0.2072,
+     "precision": 0.1607
+    },
+    {
+     "threshold": 0.12,
+     "flagged_share": 0.0586,
+     "recall": 0.1392,
+     "precision": 0.1716
+    },
+    {
+     "threshold": 0.14,
+     "flagged_share": 0.0372,
+     "recall": 0.0944,
+     "precision": 0.1832
+    },
+    {
+     "threshold": 0.16,
+     "flagged_share": 0.0255,
+     "recall": 0.0665,
+     "precision": 0.188
+    },
+    {
+     "threshold": 0.18,
+     "flagged_share": 0.0174,
+     "recall": 0.0467,
+     "precision": 0.1933
+    },
+    {
+     "threshold": 0.2,
+     "flagged_share": 0.0118,
+     "recall": 0.0338,
+     "precision": 0.2077
+    },
+    {
+     "threshold": 0.22,
+     "flagged_share": 0.0076,
+     "recall": 0.0228,
+     "precision": 0.2153
+    },
+    {
+     "threshold": 0.24,
+     "flagged_share": 0.0052,
+     "recall": 0.0158,
+     "precision": 0.2183
+    },
+    {
+     "threshold": 0.26,
+     "flagged_share": 0.0035,
+     "recall": 0.0096,
+     "precision": 0.1985
+    },
+    {
+     "threshold": 0.28,
+     "flagged_share": 0.0022,
+     "recall": 0.0066,
+     "precision": 0.2169
+    },
+    {
+     "threshold": 0.3,
+     "flagged_share": 0.0015,
+     "recall": 0.0044,
+     "precision": 0.2069
+    },
+    {
+     "threshold": 0.32,
+     "flagged_share": 0.0011,
+     "recall": 0.0033,
+     "precision": 0.225
+    },
+    {
+     "threshold": 0.34,
+     "flagged_share": 0.0007,
+     "recall": 0.0022,
+     "precision": 0.2222
+    },
+    {
+     "threshold": 0.36,
+     "flagged_share": 0.0005,
+     "recall": 0.0022,
+     "precision": 0.3333
+    },
+    {
+     "threshold": 0.38,
+     "flagged_share": 0.0002,
+     "recall": 0.0004,
+     "precision": 0.125
+    },
+    {
+     "threshold": 0.4,
+     "flagged_share": 0.0001,
+     "recall": 0.0004,
+     "precision": 0.25
+    },
+    {
+     "threshold": 0.42,
+     "flagged_share": 0.0001,
+     "recall": 0.0,
+     "precision": 0.0
+    },
+    {
+     "threshold": 0.44,
+     "flagged_share": 0.0001,
+     "recall": 0.0,
+     "precision": 0.0
+    },
+    {
+     "threshold": 0.46,
+     "flagged_share": 0.0,
+     "recall": 0.0,
+     "precision": 0.0
+    },
+    {
+     "threshold": 0.48,
+     "flagged_share": 0.0,
+     "recall": 0.0,
+     "precision": null
+    },
+    {
+     "threshold": 0.5,
+     "flagged_share": 0.0,
+     "recall": 0.0,
+     "precision": null
+    },
+    {
+     "threshold": 0.52,
+     "flagged_share": 0.0,
+     "recall": 0.0,
+     "precision": null
+    },
+    {
+     "threshold": 0.54,
+     "flagged_share": 0.0,
+     "recall": 0.0,
+     "precision": null
+    },
+    {
+     "threshold": 0.56,
+     "flagged_share": 0.0,
+     "recall": 0.0,
+     "precision": null
+    },
+    {
+     "threshold": 0.58,
+     "flagged_share": 0.0,
+     "recall": 0.0,
+     "precision": null
+    },
+    {
+     "threshold": 0.6,
+     "flagged_share": 0.0,
+     "recall": 0.0,
+     "precision": null
+    }
+   ]
+  },
+  "promised_lead_days_only": {
+   "auroc": 0.5568,
+   "auprc": 0.0953,
+   "note": "ranking by shorter promised lead time only (no model); a sanity reference for what one checkout-time field carries"
+  }
+ }
+}

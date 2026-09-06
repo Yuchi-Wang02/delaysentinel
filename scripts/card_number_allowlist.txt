@@ -45,3 +45,25 @@
 1.b      # license clause
 i        # license clause
 iii      # license clause
+261      # 50 + 43 + 84 + 84 rule-field edits (also in eval.json counterfactual_probe._summary)
+5070     # GPU name (RTX 5070 Ti)
+4.55     # version prefix of transformers 4.55.4
+512      # max_new_tokens of the legacy Flask app
+6        # section numbers / list positions
+7        # section numbers / list positions
+1300     # earliest surviving checkpoint step of run sc904
+128001   # Instruct eos_token_id list
+128008   # Instruct eos_token_id list
+128009   # Instruct eos_token_id list
+12.4     # 1,235,814,400 parameters in 亿 (Chinese case study title)
+1.235    # ditto, in billions with three decimals
+2016     # Olist data years
+2017     # Olist data years
+2018     # Olist data years / split date
+36       # test count (pytest --co)
+74       # probe sets in the model run (37 counterfactual + 33 robustness + 4 ood)
+32       # non-rule probe sets (13 fields x negatives/positives + 6 reason variants)
+1.7      # version prefix of scikit-learn 1.7.2
+4.0      # CC BY-NC-SA 4.0
+-90      # latitude bound
+-180     # longitude bound

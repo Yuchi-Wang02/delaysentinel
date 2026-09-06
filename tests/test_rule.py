@@ -11,7 +11,10 @@ def test_crosstab_numbers(csv_frame):
     assert ct["shipment_status_delayed"] == {"rows": 350, "delayed": 350}
     assert ct["traffic_status_heavy"] == {"rows": 327, "delayed": 327}
     assert ct["neither"] == {"rows": 434, "delayed": 0}
+    assert ct["delivered_and_heavy"] == {"rows": 118, "delayed": 118}
+    assert ct["both"]["rows"] == 111
     assert ct["mismatches"] == 0
+    assert len(ct["status_x_traffic_cells"]) == 9
 
 
 def test_category_counts(csv_frame):

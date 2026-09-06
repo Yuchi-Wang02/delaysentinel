@@ -37,3 +37,4 @@ venv/
 # editors
 .idea/
 .vscode/
+data/olist/

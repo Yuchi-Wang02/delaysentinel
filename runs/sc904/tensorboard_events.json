@@ -1,0 +1,27 @@
+{
+ "run": "sc904",
+ "tensorboard_run_dir": "Sep04_16-25-07_yyyyyyyyyyyyyy",
+ "files": [
+  {
+   "file": "events.out.tfevents.1757017508.yyyyyyyyyyyyyy.38324.0",
+   "bytes": 70615,
+   "mtime_epoch": 1757018596,
+   "mtime_utc": "2025-09-04T20:43:16.562336Z",
+   "sha256": "7177fe4b8ba31242749f0b4785a3c964ebb5ec50e4cd7f597ad32e7c848a8b17"
+  },
+  {
+   "file": "events.out.tfevents.1757018598.yyyyyyyyyyyyyy.38324.1",
+   "bytes": 359,
+   "mtime_epoch": 1757018598,
+   "mtime_utc": "2025-09-04T20:43:18.595322Z",
+   "sha256": "844f88acdd86b9bd94fbda8ac2f93af907105bfdd103ca7de73d08f509f1c211"
+  }
+ ],
+ "created_epoch_from_filenames": [
+  1757017508,
+  1757018598
+ ],
+ "seconds_between_file_creations": 1090,
+ "seconds_between_mtimes": 2,
+ "note": "event files are not committed (binary, 70 KB); this record lists their names, sizes, hashes and timestamps. The gap between the two files' creation times is the wall-clock from the first training log to the final evaluate_all() call."
+}

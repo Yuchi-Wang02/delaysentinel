@@ -1,6 +1,8 @@
 # CPU-only subset for CI: tests, baselines and the number check (no model download).
-numpy>=1.26
-pandas>=2.1
-scikit-learn>=1.4
-scipy>=1.11
+# scikit-learn is pinned because the gradient-boosting baselines in results/eval.json
+# depend on its version (1.9.0 gives slightly different numbers).
+numpy==2.1.2
+pandas==2.3.2
+scikit-learn==1.7.2
+scipy==1.15.3
 pytest>=8

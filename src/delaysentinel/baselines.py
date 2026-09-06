@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -16,12 +17,21 @@ from .data import CATEGORICAL_FIELDS, NUMERIC_FIELDS, rule_predict
 from .prompting import RULE_FIELDS
 from .stats import classification_metrics
 
+TIME_FEATURES = ("ts_month", "ts_weekday", "ts_hour")
+
 FEATURE_ENCODING = {
-    "dropped": ["Timestamp"],
-    "numeric_standardized": list(NUMERIC_FIELDS),
-    "one_hot": list(CATEGORICAL_FIELDS),
-    "missing_reason": "kept as its own category 'None', exactly as it appears in the prompt",
-    "without_rule_fields_variant": f"same, minus every one-hot column derived from {list(RULE_FIELDS)}",
+    "default": {
+        "dropped": ["Timestamp"],
+        "numeric_standardized": list(NUMERIC_FIELDS),
+        "one_hot": list(CATEGORICAL_FIELDS),
+        "missing_reason": "kept as its own category 'None', exactly as it appears in the prompt",
+    },
+    "without_rule_fields": f"default minus every one-hot column derived from {list(RULE_FIELDS)}",
+    "without_rule_fields_and_reason": "without_rule_fields minus Logistics_Delay_Reason (a post-hoc column)",
+    "without_rule_fields_plus_time": (
+        "without_rule_fields plus month, weekday and hour parsed from Timestamp (one-hot), "
+        "so that the only column the default encoding drops is also tested"
+    ),
 }
 
 BASELINE_NAMES = (
@@ -31,16 +41,32 @@ BASELINE_NAMES = (
     "logistic_regression",
     "gradient_boosting",
     "gradient_boosting_without_rule_fields",
+    "gradient_boosting_without_rule_fields_and_reason",
+    "gradient_boosting_without_rule_fields_plus_time",
 )
+_VARIANTS = {
+    "decision_tree_depth2": "default",
+    "logistic_regression": "default",
+    "gradient_boosting": "default",
+    "gradient_boosting_without_rule_fields": "without_rule_fields",
+    "gradient_boosting_without_rule_fields_and_reason": "without_rule_fields_and_reason",
+    "gradient_boosting_without_rule_fields_plus_time": "without_rule_fields_plus_time",
+}
 
 
-def _columns(drop_rule_fields: bool) -> tuple[list[str], list[str]]:
-    cats = [c for c in CATEGORICAL_FIELDS if not (drop_rule_fields and c in RULE_FIELDS)]
+def _columns(variant: str) -> tuple[list[str], list[str]]:
+    cats = list(CATEGORICAL_FIELDS)
+    if variant != "default":
+        cats = [c for c in cats if c not in RULE_FIELDS]
+    if variant == "without_rule_fields_and_reason":
+        cats = [c for c in cats if c != "Logistics_Delay_Reason"]
+    if variant == "without_rule_fields_plus_time":
+        cats = cats + list(TIME_FEATURES)
     return list(NUMERIC_FIELDS), cats
 
 
-def _pipeline(estimator, drop_rule_fields: bool) -> Pipeline:
-    nums, cats = _columns(drop_rule_fields)
+def _pipeline(estimator, variant: str) -> Pipeline:
+    nums, cats = _columns(variant)
     pre = ColumnTransformer(
         [
             ("num", StandardScaler(), nums),
@@ -55,14 +81,19 @@ def _estimator(name: str, seed: int):
         return DecisionTreeClassifier(max_depth=2, random_state=seed)
     if name == "logistic_regression":
         return LogisticRegression(max_iter=2000)
-    if name in ("gradient_boosting", "gradient_boosting_without_rule_fields"):
+    if name.startswith("gradient_boosting"):
         return GradientBoostingClassifier(random_state=seed)
     raise KeyError(name)
 
 
-def _features(frame: pd.DataFrame, drop_rule_fields: bool) -> pd.DataFrame:
-    nums, cats = _columns(drop_rule_fields)
-    out = frame[nums + cats].copy()
+def _features(frame: pd.DataFrame, variant: str) -> pd.DataFrame:
+    nums, cats = _columns(variant)
+    out = frame[nums + [c for c in cats if c not in TIME_FEATURES]].copy()
+    if variant == "without_rule_fields_plus_time":
+        ts = pd.to_datetime(frame["Timestamp"], errors="coerce")
+        out["ts_month"] = ts.dt.month.astype("Int64").astype(str)
+        out["ts_weekday"] = ts.dt.weekday.astype("Int64").astype(str)
+        out["ts_hour"] = ts.dt.hour.astype("Int64").astype(str)
     for c in cats:
         out[c] = out[c].astype(str)
     return out
@@ -75,18 +106,13 @@ def evaluate_split(train: pd.DataFrame, test: pd.DataFrame, seed: int = 0, n_boo
     results: dict[str, dict] = {}
     results["rule_delayed_or_heavy"] = classification_metrics(y_test, rule_predict(test), n_boot=n_boot, seed=seed)
     results["all_positive"] = classification_metrics(y_test, np.ones_like(y_test), n_boot=n_boot, seed=seed)
-    for name in (
-        "decision_tree_depth2",
-        "logistic_regression",
-        "gradient_boosting",
-        "gradient_boosting_without_rule_fields",
-    ):
-        drop = name.endswith("without_rule_fields")
-        pipe = _pipeline(_estimator(name, seed), drop)
-        pipe.fit(_features(train, drop), y_train)
-        pred = pipe.predict(_features(test, drop))
-        prob = pipe.predict_proba(_features(test, drop))[:, 1]
+    for name, variant in _VARIANTS.items():
+        pipe = _pipeline(_estimator(name, seed), variant)
+        pipe.fit(_features(train, variant), y_train)
+        pred = pipe.predict(_features(test, variant))
+        prob = pipe.predict_proba(_features(test, variant))[:, 1]
         results[name] = classification_metrics(y_test, pred, prob, n_boot=n_boot, seed=seed)
+        results[name]["feature_variant"] = variant
         if name == "decision_tree_depth2":
             results[name]["tree_rules"] = _tree_text(pipe)
     return results
@@ -112,20 +138,12 @@ def cross_validate(frame: pd.DataFrame, seed: int = 0, n_splits: int = 5, n_repe
         train, test = frame.iloc[tr], frame.iloc[te]
         per_name["rule_delayed_or_heavy"]["acc"].append(float((rule_predict(test) == y[te]).mean()))
         per_name["all_positive"]["acc"].append(float((np.ones_like(y[te]) == y[te]).mean()))
-        for name in (
-            "decision_tree_depth2",
-            "logistic_regression",
-            "gradient_boosting",
-            "gradient_boosting_without_rule_fields",
-        ):
-            drop = name.endswith("without_rule_fields")
-            pipe = _pipeline(_estimator(name, seed + fold), drop)
-            pipe.fit(_features(train, drop), y[tr])
-            pred = pipe.predict(_features(test, drop))
-            prob = pipe.predict_proba(_features(test, drop))[:, 1]
+        for name, variant in _VARIANTS.items():
+            pipe = _pipeline(_estimator(name, seed + fold), variant)
+            pipe.fit(_features(train, variant), y[tr])
+            pred = pipe.predict(_features(test, variant))
+            prob = pipe.predict_proba(_features(test, variant))[:, 1]
             per_name[name]["acc"].append(float((pred == y[te]).mean()))
-            from sklearn.metrics import roc_auc_score
-
             per_name[name]["auroc"].append(float(roc_auc_score(y[te], prob)))
     summary = {
         "scheme": f"RepeatedStratifiedKFold(n_splits={n_splits}, n_repeats={n_repeats}, random_state={seed})",

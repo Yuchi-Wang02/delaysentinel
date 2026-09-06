@@ -4,7 +4,7 @@ language:
 - en
 pretty_name: Smart Logistics delay split v0 (frozen)
 size_categories:
-- n<1K
+- 1K<n<10K
 task_categories:
 - text-classification
 tags:
@@ -17,9 +17,9 @@ tags:
 
 # Smart Logistics delay split v0 (frozen)
 
-The 1,000-row Kaggle **Smart Logistics Supply Chain Dataset** (user *ziya07*, CC0:
-https://www.kaggle.com/datasets/ziya07/smart-logistics-supply-chain-dataset) together with the
-exact 800/200 ShareGPT-style JSONL split on which
+The 1,000-row Kaggle **Smart Logistics Supply Chain Dataset** (user *ziya07*, listed as CC0 on
+https://www.kaggle.com/datasets/ziya07/smart-logistics-supply-chain-dataset when read on
+2026-09-03) together with the exact 800/200 ShareGPT-style JSONL split on which
 [`Yuchiwang02/Llama-3.2-1B-DelaySentinel`](https://huggingface.co/Yuchiwang02/Llama-3.2-1B-DelaySentinel)
 was fine-tuned in September 2025.
 
@@ -33,7 +33,10 @@ non-delayed rows). It is useful as a teaching example of target leakage, not as 
 | --- | ---: | --- |
 | `smart_logistics_dataset.csv` | 1,000 | the Kaggle file, unchanged (missing reason is the literal `None`) |
 | `train.jsonl` | 800 | system / user / assistant records; unseeded shuffle, September 2025 |
-| `test.jsonl` | 200 | 116 positive / 84 negative; used as the Trainer eval set during training (first 20 rows) |
+| `test.jsonl` | 200 | 116 positive / 84 negative; its first 20 rows were the Trainer eval subset during training |
 | `SPLIT.md` | | hashes, how the split was made, why it must not be re-split |
+
+The JSONL files, including the system prompt they contain, are the author's mechanical
+transformation of the CSV and are dedicated to the public domain under CC0-1.0 as well.
 
 Code, evaluation JSON and probes: https://github.com/Yuchi-Wang02/delaysentinel

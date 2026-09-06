@@ -4,6 +4,16 @@ Every probe rewrites the *text* of test prompts and re-scores the model, so what
 measured is the behaviour of the published weights on inputs that differ from the
 original in one controlled way. Probe construction is pure Python and unit-tested;
 scoring needs the model (see :func:`run_probe`).
+
+Groups
+------
+``counterfactual``  edits to the two rule fields (expect a flip) and to every non-rule
+                    field, one value per field (expect no change)
+``robustness``      column renames, column order, case variants, synonyms and
+                    near-synonyms, antonyms/negations, the trigger value placed in a
+                    non-rule field or in the other rule field, one rule field removed,
+                    unseen values
+``ood``             prompts outside the training schema
 """
 
 from __future__ import annotations
@@ -30,6 +40,53 @@ README_V0_EXAMPLE = (
     "weight_kg: 10.5\ndistance_km: 3500\nholiday_flag: 0"
 )
 
+#: One replacement value per non-rule field (max of the CSV range for numerics, the
+#: most distinct categorical value otherwise). Used for the "does anything else move
+#: the prediction" probes on negatives and positives.
+NON_RULE_EDITS: dict[str, str] = {
+    "Timestamp": "2024-12-30 20:21:58",
+    "Asset_ID": "Truck_10",
+    "Latitude": "0.0",
+    "Longitude": "0.0",
+    "Inventory_Level": "500",
+    "Temperature": "30.0",
+    "Humidity": "80.0",
+    "Waiting_Time": "60",
+    "User_Transaction_Amount": "500",
+    "User_Purchase_Frequency": "10",
+    "Logistics_Delay_Reason": "Traffic",
+    "Asset_Utilization": "100.0",
+    "Demand_Forecast": "300",
+}
+
+#: Value rewrites for the two rule fields: (key suffix, new value, kind).
+DELAYED_VARIANTS = [
+    ("DELAYED", "DELAYED", "case"),
+    ("delayed", "delayed", "case"),
+    ("Late", "Late", "synonym"),
+    ("Behind_schedule", "Behind schedule", "synonym"),
+    ("Postponed", "Postponed", "synonym"),
+    ("Overdue", "Overdue", "synonym"),
+    ("Held_up", "Held up", "synonym"),
+    ("On_Time", "On Time", "antonym"),
+    ("Early", "Early", "antonym"),
+    ("Pending", "Pending", "neighbour"),
+    ("Not_Delayed", "Not Delayed", "negation"),
+]
+HEAVY_VARIANTS = [
+    ("HEAVY", "HEAVY", "case"),
+    ("heavy", "heavy", "case"),
+    ("Congested", "Congested", "synonym"),
+    ("Jammed", "Jammed", "synonym"),
+    ("Gridlock", "Gridlock", "synonym"),
+    ("Slow", "Slow", "synonym"),
+    ("Dense", "Dense", "synonym"),
+    ("Light", "Light", "antonym"),
+    ("Free_flowing", "Free-flowing", "antonym"),
+    ("Moderate", "Moderate", "neighbour"),
+    ("Not_Heavy", "Not Heavy", "negation"),
+]
+
 
 @dataclass
 class Probe:
@@ -53,6 +110,8 @@ def counterfactual_probes(test: pd.DataFrame, users: Sequence[str]) -> list[Prob
     status = test["Shipment_Status"].astype(str)
     traffic = test["Traffic_Status"].astype(str)
     gold = test["gold"].astype(int)
+    neg = _idx(gold == 0)
+    pos = _idx(gold == 1)
 
     probes: list[Probe] = []
 
@@ -66,6 +125,7 @@ def counterfactual_probes(test: pd.DataFrame, users: Sequence[str]) -> list[Prob
             [set_field(users[i], "Shipment_Status", "In Transit") for i in idx],
             0,
             "flip_to_0",
+            meta={"rule_field_edit": True},
         )
     )
     idx = _idx((traffic == "Heavy") & (status != "Delayed"))
@@ -78,18 +138,19 @@ def counterfactual_probes(test: pd.DataFrame, users: Sequence[str]) -> list[Prob
             [set_field(users[i], "Traffic_Status", "Clear") for i in idx],
             0,
             "flip_to_0",
+            meta={"rule_field_edit": True},
         )
     )
-    idx = _idx(gold == 0)
     probes.append(
         Probe(
             "negatives_traffic_to_Heavy",
             "counterfactual",
             "all negatives; set Traffic_Status to Heavy",
-            idx,
-            [set_field(users[i], "Traffic_Status", "Heavy") for i in idx],
+            neg,
+            [set_field(users[i], "Traffic_Status", "Heavy") for i in neg],
             1,
             "flip_to_1",
+            meta={"rule_field_edit": True},
         )
     )
     probes.append(
@@ -97,43 +158,73 @@ def counterfactual_probes(test: pd.DataFrame, users: Sequence[str]) -> list[Prob
             "negatives_status_to_Delayed",
             "counterfactual",
             "all negatives; set Shipment_Status to Delayed",
-            idx,
-            [set_field(users[i], "Shipment_Status", "Delayed") for i in idx],
+            neg,
+            [set_field(users[i], "Shipment_Status", "Delayed") for i in neg],
             1,
             "flip_to_1",
+            meta={"rule_field_edit": True},
         )
     )
+    # legacy paired edits kept for continuity with the first evaluation
     probes.append(
         Probe(
             "negatives_waiting60_temp30",
             "counterfactual",
-            "all negatives; set Waiting_Time=60 and Temperature=30.0 (non-rule fields)",
-            idx,
-            [set_field(set_field(users[i], "Waiting_Time", 60), "Temperature", "30.0") for i in idx],
+            "all negatives; set Waiting_Time=60 and Temperature=30.0 (two non-rule fields)",
+            neg,
+            [set_field(set_field(users[i], "Waiting_Time", 60), "Temperature", "30.0") for i in neg],
             0,
             "unchanged",
         )
     )
-    idx = _idx(gold == 1)
     probes.append(
         Probe(
             "positives_waiting10_temp18",
             "counterfactual",
-            "all positives; set Waiting_Time=10 and Temperature=18.0 (non-rule fields)",
-            idx,
-            [set_field(set_field(users[i], "Waiting_Time", 10), "Temperature", "18.0") for i in idx],
+            "all positives; set Waiting_Time=10 and Temperature=18.0 (two non-rule fields)",
+            pos,
+            [set_field(set_field(users[i], "Waiting_Time", 10), "Temperature", "18.0") for i in pos],
             1,
             "unchanged",
         )
     )
-    idx = list(range(len(users)))
+    # one probe per non-rule field, on negatives and on positives
+    for fld, value in NON_RULE_EDITS.items():
+        for grp, idx_, exp in (("negatives", neg, 0), ("positives", pos, 1)):
+            probes.append(
+                Probe(
+                    f"nonrule_{grp}_{fld}",
+                    "counterfactual",
+                    f"all {grp}; set {fld} to {value!r} (non-rule field)",
+                    idx_,
+                    [set_field(users[i], fld, value) for i in idx_],
+                    exp,
+                    "unchanged",
+                    meta={"non_rule_field_edit": True, "field": fld, "value": value},
+                )
+            )
+    for value in ("Mechanical Failure", "None"):
+        for grp, idx_, exp in (("negatives", neg, 0), ("positives", pos, 1)):
+            probes.append(
+                Probe(
+                    f"nonrule_{grp}_Logistics_Delay_Reason_{value.replace(' ', '_')}",
+                    "counterfactual",
+                    f"all {grp}; set Logistics_Delay_Reason to {value!r} (non-rule field)",
+                    idx_,
+                    [set_field(users[i], "Logistics_Delay_Reason", value) for i in idx_],
+                    exp,
+                    "unchanged",
+                    meta={"non_rule_field_edit": True, "field": "Logistics_Delay_Reason", "value": value},
+                )
+            )
+    all_idx = list(range(len(users)))
     probes.append(
         Probe(
             "both_rule_fields_removed",
             "counterfactual",
             "all rows; delete the Shipment_Status and Traffic_Status lines",
-            idx,
-            [drop_fields(users[i], RULE_FIELDS) for i in idx],
+            all_idx,
+            [drop_fields(users[i], RULE_FIELDS) for i in all_idx],
             None,
             "none",
             notes="no rule applies; report what the model emits",
@@ -146,7 +237,11 @@ def counterfactual_probes(test: pd.DataFrame, users: Sequence[str]) -> list[Prob
 def robustness_probes(test: pd.DataFrame, users: Sequence[str]) -> list[Probe]:
     status = test["Shipment_Status"].astype(str)
     traffic = test["Traffic_Status"].astype(str)
+    gold = test["gold"].astype(int)
     all_idx = list(range(len(users)))
+    neg = _idx(gold == 0)
+    delayed_rows = _idx(status == "Delayed")
+    heavy_rows = _idx(traffic == "Heavy")
     probes: list[Probe] = []
 
     probes.append(
@@ -186,26 +281,32 @@ def robustness_probes(test: pd.DataFrame, users: Sequence[str]) -> list[Probe]:
             "gold",
         )
     )
-    for key, old, new, column in (
-        ("synonym_Delayed_to_Late", "Delayed", "Late", "Shipment_Status"),
-        ("synonym_Delayed_to_DELAYED", "Delayed", "DELAYED", "Shipment_Status"),
-        ("synonym_Delayed_to_delayed", "Delayed", "delayed", "Shipment_Status"),
-        ("synonym_Heavy_to_Congested", "Heavy", "Congested", "Traffic_Status"),
-        ("synonym_Heavy_to_HEAVY", "Heavy", "HEAVY", "Traffic_Status"),
-        ("synonym_Heavy_to_heavy", "Heavy", "heavy", "Traffic_Status"),
-    ):
-        series = status if column == "Shipment_Status" else traffic
-        idx = _idx(series == old)
+    for suffix, value, kind in DELAYED_VARIANTS:
         probes.append(
             Probe(
-                key,
+                f"value_Delayed_to_{suffix}",
                 "robustness",
-                f"rows with {column} == {old}; write the value as {new!r}",
-                idx,
-                [set_field(users[i], column, new) for i in idx],
+                f"rows with Shipment_Status == Delayed; write the value as {value!r} ({kind})",
+                delayed_rows,
+                [set_field(users[i], "Shipment_Status", value) for i in delayed_rows],
                 None,
                 "gold",
                 notes="gold is 1 for every such row; the literal rule no longer fires",
+                meta={"variant_kind": kind, "field": "Shipment_Status", "value": value},
+            )
+        )
+    for suffix, value, kind in HEAVY_VARIANTS:
+        probes.append(
+            Probe(
+                f"value_Heavy_to_{suffix}",
+                "robustness",
+                f"rows with Traffic_Status == Heavy; write the value as {value!r} ({kind})",
+                heavy_rows,
+                [set_field(users[i], "Traffic_Status", value) for i in heavy_rows],
+                None,
+                "gold",
+                notes="gold is 1 for every such row; the literal rule no longer fires",
+                meta={"variant_kind": kind, "field": "Traffic_Status", "value": value},
             )
         )
     for seed in (0, 1, 2):
@@ -222,6 +323,57 @@ def robustness_probes(test: pd.DataFrame, users: Sequence[str]) -> list[Probe]:
                 meta={"order": order},
             )
         )
+    # trigger value placed where it never occurred in training
+    probes.append(
+        Probe(
+            "trigger_Heavy_in_Logistics_Delay_Reason",
+            "robustness",
+            "all negatives; Logistics_Delay_Reason = Heavy (trigger value in a non-rule field)",
+            neg,
+            [set_field(users[i], "Logistics_Delay_Reason", "Heavy") for i in neg],
+            0,
+            "unchanged",
+            notes="a field-bound rule keeps 0; a bag-of-words trigger fires",
+            meta={"trigger_placement": True},
+        )
+    )
+    probes.append(
+        Probe(
+            "trigger_Delayed_in_Logistics_Delay_Reason",
+            "robustness",
+            "all negatives; Logistics_Delay_Reason = Delayed (trigger value in a non-rule field)",
+            neg,
+            [set_field(users[i], "Logistics_Delay_Reason", "Delayed") for i in neg],
+            0,
+            "unchanged",
+            meta={"trigger_placement": True},
+        )
+    )
+    probes.append(
+        Probe(
+            "trigger_Delayed_in_Asset_ID",
+            "robustness",
+            "all negatives; Asset_ID = Delayed (trigger value in a non-rule field)",
+            neg,
+            [set_field(users[i], "Asset_ID", "Delayed") for i in neg],
+            0,
+            "unchanged",
+            meta={"trigger_placement": True},
+        )
+    )
+    probes.append(
+        Probe(
+            "trigger_swapped_fields",
+            "robustness",
+            "all negatives; Shipment_Status = Heavy and Traffic_Status = Delayed (values in the other rule field)",
+            neg,
+            [set_field(set_field(users[i], "Shipment_Status", "Heavy"), "Traffic_Status", "Delayed") for i in neg],
+            0,
+            "unchanged",
+            notes="the literal rule gives 0; a bag-of-words trigger gives 1",
+            meta={"trigger_placement": True},
+        )
+    )
     probes.append(
         Probe(
             "only_status_removed",
@@ -296,15 +448,32 @@ def ood_probes() -> list[Probe]:
 
 # ------------------------------------------------------------------- scoring
 def _literal_rule_on_texts(texts: Sequence[str]) -> list[int | None]:
+    """The two-clause rule read literally off the rewritten text; ``None`` when either
+    rule field is absent (renamed or deleted), because the rule is then undefined."""
     out: list[int | None] = []
     for text in texts:
         fields = parse_user_text(text)
-        if "Shipment_Status" not in fields and "Traffic_Status" not in fields:
+        if "Shipment_Status" not in fields or "Traffic_Status" not in fields:
             out.append(None)
             continue
         delayed = fields.get("Shipment_Status", "").strip() == "Delayed"
         heavy = fields.get("Traffic_Status", "").strip() == "Heavy"
         out.append(int(delayed or heavy))
+    return out
+
+
+def _remaining_clause_on_texts(texts: Sequence[str]) -> list[int | None]:
+    """When exactly one rule field is present, the value of that single clause."""
+    out: list[int | None] = []
+    for text in texts:
+        fields = parse_user_text(text)
+        has_s, has_t = "Shipment_Status" in fields, "Traffic_Status" in fields
+        if has_s and not has_t:
+            out.append(int(fields["Shipment_Status"].strip() == "Delayed"))
+        elif has_t and not has_s:
+            out.append(int(fields["Traffic_Status"].strip() == "Heavy"))
+        else:
+            out.append(None)
     return out
 
 
@@ -335,8 +504,55 @@ def run_probe(scorer, probe: Probe, gold: Sequence[int]) -> dict:
         if all(v is not None for v in literal):
             lit = np.array(literal)
             result["agreement_with_literal_rule_on_rewritten_text"] = round(float((preds == lit).mean()), 4)
+        remaining = _remaining_clause_on_texts(probe.texts)
+        if all(v is not None for v in remaining):
+            rem = np.array(remaining)
+            result["agreement_with_remaining_clause"] = round(float((preds == rem).mean()), 4)
+    if getattr(scorer, "score_available", False) and n:
+        scores = scorer.label_scores(probe.texts)
+        if scores:
+            margins = np.array([s["margin"] for s in scores])
+            result["margin"] = {
+                "min": round(float(margins.min()), 3),
+                "max": round(float(margins.max()), 3),
+                "abs_median": round(float(np.median(np.abs(margins))), 3),
+                "abs_min": round(float(np.abs(margins).min()), 3),
+            }
     if probe.group == "ood" or n <= 4:
         result["raw_outputs"] = raw
     else:
         result["raw_output_examples"] = raw[:3]
     return result
+
+
+def summarize_counterfactuals(results: dict[str, dict], probes: Sequence[Probe]) -> dict:
+    """Aggregate counts that the model card quotes: rule-field edits vs non-rule edits."""
+    by_key = {p.key: p for p in probes}
+    rule_edits = rule_matches = 0
+    rule_rows: set[int] = set()
+    nonrule_edits = nonrule_changed = 0
+    nonrule_fields: set[str] = set()
+    for key, res in results.items():
+        p = by_key.get(key)
+        if p is None:
+            continue
+        if p.meta.get("rule_field_edit"):
+            rule_edits += res["n"]
+            rule_matches += res.get("matches_expected", 0)
+            rule_rows.update(p.indices)
+        elif p.expected_kind == "unchanged" and p.group == "counterfactual":
+            nonrule_edits += res["n"]
+            nonrule_changed += res["n"] - res.get("matches_expected", 0)
+            if p.meta.get("field"):
+                nonrule_fields.add(p.meta["field"])
+            else:
+                nonrule_fields.update({"Waiting_Time", "Temperature"})
+    return {
+        "rule_field_edits": rule_edits,
+        "rule_field_edits_flipped_as_expected": rule_matches,
+        "distinct_rows_with_rule_field_edit": len(rule_rows),
+        "non_rule_field_edits": nonrule_edits,
+        "non_rule_field_edits_that_changed_the_prediction": nonrule_changed,
+        "non_rule_fields_probed": sorted(nonrule_fields),
+        "non_rule_fields_probed_count": len(nonrule_fields),
+    }
