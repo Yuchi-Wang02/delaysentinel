@@ -48,6 +48,13 @@ not a naive substring scan of the whole prompt.
   unit of the eval-loss column and the rounding boundary of the training log, are now
   listed in the allowlist with their reasons.
 
+### Corrections to the publish script
+
+- The card and both case studies link to `results/olist_positive_control.json`, and the
+  repository-layout table names `docs/leakage_audit.md`. Neither was in the upload manifest,
+  so both links would have been dead for anyone arriving from the Hub. They are uploaded now,
+  and a test fails if a document links to a repository file the script does not publish.
+
 ### Attribution
 
 - The vendored training script is pinned to upstream `136d2bf`, the last commit touching it

@@ -45,6 +45,7 @@ MODEL_FILES = [
     "results/eval.json",
     "results/test_predictions.csv",
     "results/leakage_audit.json",
+    "results/olist_positive_control.json",
     "runs/RUNS.md",
     "runs/sc904/training_config.json",
     "runs/sc904/trainer_state.json",
@@ -52,6 +53,7 @@ MODEL_FILES = [
     "data/SPLIT.md",
     "docs/case_study.md",
     "docs/case_study.zh.md",
+    "docs/leakage_audit.md",
 ]
 MODEL_DELETE = ["app.py", "templates/index.html"]
 SPACE_LICENCE_FILES = ["LICENSE", "USE_POLICY.md", "NOTICE", "LICENSE-MIT"]
