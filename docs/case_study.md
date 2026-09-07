@@ -1,4 +1,4 @@
-# How a 1.24-billion-parameter model learned to match two strings
+# How a 1.24-billion-parameter model learned to answer from the surface of the prompt
 
 *A label-leakage post-mortem on my first fine-tuning project. Every metric here is in
 [`results/eval.json`](../results/eval.json) or
@@ -128,12 +128,14 @@ Outside the schema the model does not abstain. The usage example from my origina
 which used columns like `carrier` and `weight_kg` that the model never saw, gets
 `Logistics_Delay: 0` with a margin of -14.0. So does a header-only prompt (-10.6) and an empty
 prompt (-2.1, the weakest of the four). Asked "What is the capital of France?", it answers `Paris`.
-The base model is still in there; the fine-tune added a string matcher and a strong prior to
-answer `0` when the form is present but the strings are not.
+The base model is still in there; the fine-tune added a surface-form trigger and a strong prior
+to answer `0` whenever the form is present and nothing in it fires.
 
-What is still open: I do not know the exact pattern being matched. The field name
-`Logistics_Delay_Reason` contains "Delay" in every prompt and triggers nothing, so it is not a
-naive substring scan, and I have not tested why `Late`, `Early` and `Light` fire. Those are the
+What is still open: I do not know what the pattern is, and the two obvious guesses are both
+dead. It is not a match on the strings `Delay` and `Heavy` — `Late`, `Early` and `Light` contain
+neither and fire on every row. It is not a substring scan of the prompt — the field name
+`Logistics_Delay_Reason` carries "Delay" in all 200 prompts and triggers nothing. Why that
+particular set of forms fires and `Postponed` or `Congested` does not is untested. Those are the
 probes I would design next, and they should have been part of the protocol before training rather
 than a year after.
 

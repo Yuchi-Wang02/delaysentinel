@@ -29,9 +29,11 @@ tags:
   label is literally `Shipment_Status == "Delayed" OR Traffic_Status == "Heavy"` on all 1,000
   rows, and a two-split decision tree scores the same 1.000.
 - **Shown.** 261 of 261 edits to those two fields flip the answer; 3,200 edits to the other 13
-  fields change nothing. The model is matching the *strings* `Delay` and `Heavy`: it answers 1 for
-  `Not Delayed`, for `Heav`, for `Delayed` written into an unrelated field, and for `Delayed` in a
-  free-text sentence, while genuine synonyms like `Postponed` and `Congested` leave it at 0.
+  fields change nothing. What decides the answer is the *surface form* of those two values, not the
+  rule and not their meaning: it answers 1 for `Not Delayed`, for the truncation `Heav`, for
+  `Delayed` written into an unrelated field, for `Delayed` in a free-text sentence, and also for
+  `Early` and `Light`, while genuine synonyms like `Postponed` and `Congested` leave it at 0.
+  Which forms fire is not explained by the rule, by meaning, or by a substring scan.
 - **Changed.** Frozen split with hashes, baselines and intervals beside every number, 104 probe
   sets, a CI check that no document may quote an unsourced number, and licence compliance. The
   same discipline on real Olist orders gives AUROC 0.691, which is what an honest delay model
@@ -198,8 +200,8 @@ that value; none of the 3,200 changes a prediction.
 | an empty user turn | `Logistics_Delay: 0` | -2.1 |
 | "What is the capital of France? Answer in one word." | `Paris` | -4.25 |
 
-**Reading.** The weights implement a string match on the surface forms of `Delay` and `Heavy`,
-not the two-column rule and not the meaning of the words. Case does not matter, truncation does
+**Reading.** What decides the answer is the surface form of the value sitting in those two
+fields, not the two-column rule and not the meaning of the words. Case does not matter, truncation does
 not matter (`Heav` fires), negation does not matter (`Not Delayed` fires), the column does not
 matter (`Delayed` in `Asset_ID` fires), and column names and line order do not matter. Meaning
 mostly does not fire either: four of the five synonyms for delayed and all five for heavy traffic
@@ -207,12 +209,16 @@ leave the answer at the baseline, while the fifth synonym, `Late`, fires, as do 
 `Early` and `Light`. Twelve unrelated words in the same slots almost never
 fire, so this is a specific match and not a general "any unseen value" effect; the one exception,
 `Meadow` in `Traffic_Status` on 10 of 66 rows, is the only spurious trigger among them.
-The two clauses are not implemented alike: the `Delay` match fires from anywhere in the turn,
-including an appended free-text sentence, while the `Heavy` match only fires from a
-`Column: value` field. What is *not* established is the exact pattern being matched: the field
-name `Logistics_Delay_Reason` contains "Delay" in every prompt and does not trigger anything, so
-it is not a naive substring scan, and why `Late`, `Early` and `Light` fire is untested. None of
-this is delay prediction. It is a 1.24-billion-parameter string matcher. The training loss reads
+The two clauses are not implemented alike: the delayed trigger fires from anywhere in the turn,
+including an appended free-text sentence, while the heavy-traffic trigger only fires from a
+`Column: value` field. What is *not* established is the pattern itself, and two probes rule out
+the obvious guess. It is **not** a match on the strings `Delay` and `Heavy`: `Late`, `Early` and
+`Light` contain neither and fire on every row. It is not a substring scan of the prompt either:
+the field name `Logistics_Delay_Reason` carries "Delay" in all 200 prompts and never fires. So the
+set of forms that fire — the two training values with their case variants, the truncation `Heav`,
+the negations, plus `Late`, `Early` and `Light`, but not `Postponed`, `Overdue`, `Congested` or
+`Gridlock` — has no explanation in this repository. None of this is delay prediction: the model is
+answering from the form of the text rather than from what the text says. The training loss reads
 0.0000 from step 50, the end of the first epoch, so the training labels were fitted by then;
 whether the weights already used this shortcut at that point cannot be probed, because no
 checkpoint before step 1,300 survives. Every probe above describes the final weights.
@@ -436,7 +442,9 @@ only, which is what CI does, and CI asserts that those numbers reproduce exactly
   score and reliability diagrams are not meaningful for this checkpoint.
 - No abstention: the model answers `0` on an empty prompt, a header-only prompt and a foreign
   schema.
-- The learned detector is a string match, blind to negation and to which field the string is in.
+- The learned detector keys on the surface form of the value, blind to negation and to which
+  field the value sits in. Which forms it accepts is not established: `Early` and `Light` fire
+  while `Postponed` and `Congested` do not.
 - Training/inference mismatch inherited from the upstream collator: with no pad token defined,
   the tokenizer's eos token (`<|eot_id|>`) was used as the pad value and
   `attention_mask = input_ids != eos`, so the genuine `<|eot_id|>` closing the system and user
@@ -534,7 +542,7 @@ metric next to trivial baselines and bootstrap intervals for that reason.
 Llama-3.2-1B-Instruct 做了全参数 SFT，只看了训练 loss 就发布了；2026 年 9 月我第一次真正评估它，在自己的
 200 行测试集上 accuracy 1.000。问题正是这个数字：标签就是规则 `Shipment_Status == "Delayed" OR
 Traffic_Status == "Heavy"`（1,000 行零例外），两次分裂的决策树同样 1.000。探针显示模型学到的是对
-`Delay`、`Heavy` 两个字符串的匹配：大小写无关、截断成 `Heav` 也触发、写成 `Not Delayed` 照样触发、放进
+两个规则字段里那个值的表层写法：大小写无关、截断成 `Heav` 也触发、写成 `Not Delayed` 照样触发、放进
 任何字段甚至一句自由文本都触发，而 `Postponed`、`Congested` 这样真正的同义词不触发。本仓库把当年的
 pipeline 整理成可复现的代码、冻结的切分、带区间的指标、104 组探针、合规的许可证文件，并在真实的 Olist
 订单数据上用同一套方法做了参照研究（logistic regression AUROC 0.6908，prevalence 0.0722）。每个数字都来自

@@ -79,3 +79,49 @@ def test_every_non_firing_rewrite_is_listed(root, probes):
         text = _flat((root / doc).read_text(encoding="utf-8"))
         missing = [word for word in quiet if word.lower() not in text]
         assert not missing, f"{doc} omits non-firing rewrites: {missing}"
+
+
+# The published claim "the weights match the strings `Delay` and `Heavy`" was wrong: three
+# rewrites fire without containing either string. It reached the card, both case studies and the
+# changelog before it was caught, so it gets a test.
+TRIGGER_SUBSTRING = {"Delayed": "delay", "Heavy": "heav"}
+STRING_MATCH_PHRASES = (
+    "string match",
+    "matches the strings",
+    "match on the strings",
+    "string matcher",
+    "字符串匹配",
+    "两个字符串的匹配",
+    "匹配两个字符串",
+)
+NEGATIONS = ("not", "n't", "refute", "wrong", "不是", "并非", "推翻")
+
+
+def test_values_fire_without_containing_the_trigger(probes):
+    """The counterexamples that make the string-match claim false must still be in the data."""
+    counterexamples = []
+    for clause, needle in TRIGGER_SUBSTRING.items():
+        prefix = f"value_{clause}_to_"
+        for key, probe in probes.items():
+            if key.startswith(prefix) and probe["pred_pos_rate"] == 1.0:
+                value = key[len(prefix) :].replace("_", " ")
+                if needle not in value.lower():
+                    counterexamples.append(f"{clause}->{value}")
+    assert sorted(counterexamples) == ["Delayed->Early", "Delayed->Late", "Heavy->Light"], (
+        f"the set of firing rewrites that contain neither trigger has changed: {sorted(counterexamples)}. "
+        "The documents' claim that the pattern is not a string match rests on exactly this set."
+    )
+
+
+@pytest.mark.parametrize("doc", ["README.md", "docs/case_study.md", "docs/case_study.zh.md"])
+def test_no_public_document_asserts_a_string_match(root, doc):
+    text = _flat((root / doc).read_text(encoding="utf-8"))
+    for phrase in STRING_MATCH_PHRASES:
+        start = 0
+        while (i := text.find(phrase, start)) != -1:
+            before = text[max(0, i - 90) : i]
+            assert any(n in before for n in NEGATIONS), (
+                f"{doc} asserts a {phrase!r} without negating it: ...{text[max(0, i - 90) : i + 60]}... "
+                "Early, Late and Light fire and contain neither trigger."
+            )
+            start = i + 1

@@ -5,17 +5,25 @@
 A read-only multi-agent review of the v1.0.0 tree found claims that the evidence did not
 support and one attribution error. Nothing here changes the weights or the frozen split.
 
-### The finding is now stated precisely
+### The finding is now stated precisely, and one attempt at precision was itself wrong
 
-v1.0.0 described the model as a bag-of-words detector for two trigger words. The probes
-say something narrower: it matches the strings `Delay` and `Heavy`, case-blind,
-truncation-tolerant (`Heav` alone fires), negation-blind (`Not Delayed` fires) and
-field-agnostic. Twelve control words were added in both rule fields as a baseline; all but
-one leave the prediction at baseline. The `Delay` match also fires from an appended
-free-text line, while `Heavy` does not. The card and both case studies now say what the
-matched pattern is, and state the part that is still open: the field name
-`Logistics_Delay_Reason` contains `Delay` in every prompt and does not fire, so the match is
-not a naive substring scan of the whole prompt.
+v1.0.0 described the model as a bag-of-words detector for two trigger words. The first attempt to
+sharpen that said it matches the strings `Delay` and `Heavy` — which the repository's own probes
+refute, because `Late`, `Early` and `Light` contain neither string and fire on every row. That
+wording was published in this changelog, the card and both case studies before it was caught, and
+it is corrected here.
+
+What the probes support: the answer is decided by the surface form of the value in the two rule
+fields, case-blind, truncation-tolerant (`Heav` alone fires), negation-blind (`Not Delayed`
+fires) and field-agnostic; the delayed trigger fires from an appended free-text line while the
+heavy-traffic one does not; twelve unrelated control words in the same slots leave the prediction
+at baseline in 23 of 24 probe sets.
+
+What they do not support: any statement of what the pattern is. It is not the two strings, and it
+is not a substring scan of the prompt either — `Logistics_Delay_Reason` carries `Delay` in every
+prompt and never fires. The card and both case studies now say that the pattern is unidentified
+and name the two guesses their own data rules out. `tests/test_probe_prose.py` fails if a document
+starts claiming a string match again.
 
 ### Corrections to the Olist reference study
 
