@@ -1,6 +1,8 @@
 """Command-line evaluation: ``python -m delaysentinel.eval --model ... --out results/eval.json``.
 
-Sections written to the JSON (all numbers in the model card come from here):
+Sections written to the JSON (the card's model, split and probe numbers come from here; its
+Olist numbers come from ``results/olist_positive_control.json``, its scanner numbers from
+``results/leakage_audit.json`` and its training-curve numbers from ``runs/``):
 
 - ``provenance``            model id + weight hash (Hub LFS metadata when a Hub id is
                             given), split hashes, library versions, GPU, git commit,

@@ -87,13 +87,14 @@ CATEGORICAL_NO_MONTH = [c for c in CATEGORICAL if c != "purchase_month"]
 
 
 def download(data_dir: Path) -> dict[str, Path]:
-    from huggingface_hub import hf_hub_download
-
     data_dir.mkdir(parents=True, exist_ok=True)
     out = {}
     for name in FILES:
         target = data_dir / name
         if not target.exists():
+            # imported here so that a run over already-downloaded files needs no network library
+            from huggingface_hub import hf_hub_download
+
             target = Path(hf_hub_download(MIRROR, name, repo_type="dataset", local_dir=str(data_dir)))
         out[name] = target
     return out
@@ -444,8 +445,9 @@ def run(data_dir: Path, seed: int = 0, n_boot: int = 300) -> dict:
         "greedy_or_rule": scan["greedy_or_rule"],
         "depth2_tree": scan["depth2_tree"],
         "note": (
-            "the same scanner that finds the DelaySentinel rule in one second finds no pure single-column "
-            "condition here, and a depth-2 tree only reaches the majority-class rate"
+            "the same scanner that finds the DelaySentinel rule in one second finds no pure-positive "
+            "single-column condition here (the pure conditions listed above are pure-negative cells of "
+            "20 to 26 rows), and a depth-2 tree only reaches the majority-class rate"
         ),
     }
     return results

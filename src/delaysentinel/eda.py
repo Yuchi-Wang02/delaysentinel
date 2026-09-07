@@ -180,7 +180,7 @@ def fig_training(runs_dir: Path, out: Path) -> Path:
     axes[0].set_xlim(0, 300)
     axes[0].set_xlabel("optimizer step (first 300 shown)")
     axes[0].set_ylabel("training loss (assistant tokens)")
-    axes[0].set_title("Training loss is exactly 0.0 within 50–70 steps", loc="left", fontsize=10.5)  # noqa: RUF001
+    axes[0].set_title("Logged training loss reaches 0.0000 by step 45–70", loc="left", fontsize=10.5)  # noqa: RUF001
     axes[1].set_xlabel("optimizer step")
     axes[1].set_ylabel("eval loss × 1e-6 (first 20 rows of the eval file)")  # noqa: RUF001
     axes[1].set_title("Eval loss is flat after ~epoch 20", loc="left", fontsize=10.5)

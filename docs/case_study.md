@@ -89,7 +89,8 @@ logit margin on each (`figures/fig_probes.png`):
 - Set `Traffic_Status` to `Heavy`, or `Shipment_Status` to `Delayed`, on the 84 negatives: 84 of 84
   flip to 1 in each case. In total 261 of 261 rule-field edits, over 177 distinct rows, flip as the
   rule predicts.
-- Change one of the other 13 fields (3,000 single-field edits) or two of them together (200 more):
+- Change one of the other 13 fields (15 rewrites per row, because `Logistics_Delay_Reason` is
+  probed with three values, so 3,000 single-field edits) or two of them together (200 more):
   0 predictions change. Every margin stays above 12 in absolute value. 197 of those 3,200 edits
   left the prompt unchanged because the row already carried the replacement value.
 - Delete both rule lines from every prompt: the model answers 0 for all 200 rows.
@@ -101,11 +102,12 @@ exactly is being matched, and the answer is not the rule.
 `Not Delayed` all keep 73 of 73 rows at 1. `HEAVY`, `heavy`, the truncation `Heav` and `Not Heavy`
 keep 66 of 66 at 1. A model that had learned the rule would answer 0 for `Not Delayed`.
 
-**Meaning does not matter either, in both directions.** `Behind schedule`, `Postponed`, `Overdue`,
-`Held up` and `Pending` do *not* fire, leaving only the 23 rows that satisfy the other clause; the
-same for `Congested`, `Jammed`, `Gridlock`, `Slow`, `Dense`, `Free-flowing` and `Moderate`. But
-`Late`, `Early` and `Light` all fire on every row. Five genuine synonyms per clause are read as
-"not delayed", while two antonyms are read as "delayed".
+**Meaning mostly does not matter, and where it does it points the wrong way.** `Behind schedule`,
+`Postponed`, `Overdue`, `Held up`, `On Time` and `Pending` do *not* fire, leaving only the 23 rows
+that satisfy the other clause; the same for `Congested`, `Jammed`, `Gridlock`, `Slow`, `Dense`,
+`Free-flowing` and `Moderate`. But `Late`, `Early` and `Light` all fire on every row. Four of the
+five synonyms for delayed and all five for heavy traffic are read as "not delayed", while the
+fifth, `Late`, and the antonyms `Early` and `Light` are read as "delayed".
 
 **The field does not matter.** Put `Heavy` or `Delayed` into `Logistics_Delay_Reason`, put
 `Delayed` into `Asset_ID`, or swap the two values between the rule fields, and all 84 negatives
@@ -148,14 +150,15 @@ orders, late rate 0.0722). 3,673 orders that straddle the split belong to neithe
 Logistic regression reaches AUROC 0.6908 with an order-level bootstrap interval of
 [0.6819, 0.6993] and a month-block interval of [0.6329, 0.7599]; AUPRC 0.155 against a prevalence
 of 0.0722; histogram gradient boosting 0.6507 / 0.1176; the promised lead time alone ranks at
-0.5568 (`figures/fig_positive_control.png`). The month-block interval is four times as wide as the
-order-level one, and that is the honest uncertainty for "would this hold next period".
+0.5568 (`figures/fig_positive_control.png`). The month-block interval is about seven times as wide
+as the order-level one, and that is the honest uncertainty for "would this hold next period".
 
 Two things are wrong with the setup, and the JSON says so rather than hiding them. First, 2,919
 orders purchased before the cut-off were still undelivered at extraction, every one already past
 its promised date; the delivered-only filter drops them instead of labelling them late. Counting
-the 1,723 in-flight ones as late raises the test prevalence from 0.0722 to 0.0857 and moves AUROC
-to 0.6812. Second, the model is mis-calibrated across the split: mean predicted 0.0413 against an
+the 555 of them that fall in the test window as late takes that set from 37,702 orders with 2,722
+late to 38,257 with 3,277, which raises the prevalence from 0.0722 to 0.0857 and moves AUROC to
+0.6812. Second, the model is mis-calibrated across the split: mean predicted 0.0413 against an
 observed 0.0722. That is not a base-rate drift the model could have anticipated — the late rate in
 the test window swings from 0.0116 in June 2018 to 0.1896 in March 2018, and the model predicts
 0.0493 for that March. Dropping `purchase_month` does not fix it (0.0565 for the same month). No

@@ -2,7 +2,7 @@
  "provenance": {
   "source": "Olist Brazilian E-Commerce Public Dataset (Kaggle olistbr/brazilian-ecommerce), downloaded from the Hub mirror aviahYadler/Olist_Ecommerce_Dataset",
   "licence": "CC BY-NC-SA 4.0 as stated on the Kaggle page (read 2026-09-06); used here non-commercially with attribution. The Hub mirror carries no licence statement of its own; no Olist row is committed to this repository.",
-  "timestamp_utc": "2026-09-06T05:51:07+00:00",
+  "timestamp_utc": "2026-09-07T01:44:46+00:00",
   "seed": 0,
   "n_boot": 300,
   "label": "late = delivered_customer_date > estimated_delivery_date (day granularity), delivered orders only",
@@ -1349,6 +1349,6 @@
    "cv_accuracy_mean": 0.9278,
    "cv_accuracy_min": 0.9277
   },
-  "note": "the same scanner that finds the DelaySentinel rule in one second finds no pure single-column condition here, and a depth-2 tree only reaches the majority-class rate"
+  "note": "the same scanner that finds the DelaySentinel rule in one second finds no pure-positive single-column condition here (the pure conditions listed above are pure-negative cells of 20 to 26 rows), and a depth-2 tree only reaches the majority-class rate"
  }
 }

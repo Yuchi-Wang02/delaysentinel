@@ -39,13 +39,11 @@ tags:
 
 **Built with Llama.**
 
-**Publication status (2026-09-06).** This is the local v1.0.0 tree; its checks pass here.
-**Nothing has been pushed yet.** The GitHub repository linked below does not exist until
-`git push`, and the Hub side (renaming `Yuchiwang02/DelaySentinel` to
-`Yuchiwang02/Llama-3.2-1B-DelaySentinel`, this card, the licence files, the dataset mirror and the
-demo Space) is pushed by `scripts/publish_hf.py`, which needs the author's write token. Until both
-have run, the GitHub link, the `git clone` line under *Reproduce*, the dataset mirror, the Space
-and the renamed model repo do not resolve, and the Hub still shows the September 2025 card.
+**Publication status.** Both public copies are created by the author: `git push` for the GitHub
+repository, and `scripts/publish_hf.py` for the Hub side, which renames `Yuchiwang02/DelaySentinel`
+to `Yuchiwang02/Llama-3.2-1B-DelaySentinel` and uploads this card, the licence files, the results,
+the figures, the dataset mirror and the demo Space. If a link below to the GitHub repository, the
+dataset mirror or the Space does not resolve, that step has not been run yet.
 
 **Reusable pieces.** `python -m delaysentinel.leakage_audit --csv <file> --target <col>` finds
 pure single-column conditions and the greedy OR-rule in any table; `delaysentinel.probes` rewrites
@@ -160,8 +158,8 @@ each also records the teacher-forced margin. 104 probe sets in total (`results/e
 | `Traffic_Status` Heavy → Clear, on positives whose status is not Delayed | 43 | 43 flip to 0 | 17.9 |
 | `Traffic_Status` → Heavy, on all negatives | 84 | 84 flip to 1 | 12.25 |
 | `Shipment_Status` → Delayed, on all negatives | 84 | 84 flip to 1 | 12.5 |
-| each of the 13 non-rule fields set to a new value, on all negatives and all positives | 3,000 | 0 change | 12.1 |
-| `Waiting_Time` and `Temperature` changed together, on negatives and on positives | 200 | 0 change | 12.4 |
+| each of the 13 non-rule fields set to a new value, 15 rewrites per row because `Logistics_Delay_Reason` takes three | 3,000 | 0 change | 12.1 |
+| `Waiting_Time` and `Temperature` changed together, on negatives and on positives | 200 | 0 change | 12.5 |
 | both rule lines deleted from every prompt | 200 | 200 predict 0 (accuracy vs gold 0.42) | 15.5 |
 
 261 of 261 rule-field edits, over 177 distinct rows, flip as the rule predicts. (The 23 positives
@@ -179,10 +177,10 @@ that value; none of the 3,200 changes a prediction.
 | shuffle the order of the 15 lines (seeds 0, 1, 2) | 200 | unchanged: 1.000 vs gold |
 | `Delayed` written as `DELAYED`, `delayed`, the bare stem `Delay`, or `Not Delayed` | 73 | all 73 predict 1 |
 | `Delayed` written as `Late` or `Early` | 73 | all 73 predict 1 |
-| `Delayed` written as `Behind schedule`, `Postponed`, `Overdue`, `Held up` or `On Time` | 73 | only the 23 rows whose traffic is Heavy predict 1 |
+| `Delayed` written as `Behind schedule`, `Postponed`, `Overdue`, `Held up`, `On Time` or `Pending` | 73 | only the 23 rows whose traffic is Heavy predict 1 |
 | `Heavy` written as `HEAVY`, `heavy`, the truncation `Heav`, `Not Heavy`, or `Light` | 66 | all 66 predict 1 |
 | `Heavy` written as `Congested`, `Jammed`, `Gridlock`, `Slow`, `Dense`, `Free-flowing` or `Moderate` | 66 | only the 23 rows whose status is Delayed predict 1 |
-| 12 unrelated single-token words (`Copper`, `Violet`, `Harbor`, …) in `Shipment_Status` | 73 each | 11 of 12 give exactly the 23 baseline rows; none fires |
+| 12 unrelated single-token words (`Copper`, `Violet`, `Harbor`, …) in `Shipment_Status` | 73 each | all 12 give exactly the 23 baseline rows; none fires |
 | the same 12 words in `Traffic_Status` | 66 each | 11 of 12 give the 23 baseline rows; `Meadow` fires on 10 extra rows (33 of 66) |
 | `Heavy` or `Delayed` placed in `Logistics_Delay_Reason`, `Delayed` in `Asset_ID`, or the two values swapped between the rule fields, on negatives | 84 | all 84 predict 1 |
 | an appended free-text line "Note: the depot supervisor is Mr. **Delayed**", on negatives | 84 | all 84 predict 1 |
@@ -203,9 +201,10 @@ that value; none of the 3,200 changes a prediction.
 **Reading.** The weights implement a string match on the surface forms of `Delay` and `Heavy`,
 not the two-column rule and not the meaning of the words. Case does not matter, truncation does
 not matter (`Heav` fires), negation does not matter (`Not Delayed` fires), the column does not
-matter (`Delayed` in `Asset_ID` fires), and column names and line order do not matter. Real
-synonyms do not fire: five for delayed and five for heavy traffic leave the answer at the baseline,
-while the antonyms `Early` and `Light` fire. Twelve unrelated words in the same slots almost never
+matter (`Delayed` in `Asset_ID` fires), and column names and line order do not matter. Meaning
+mostly does not fire either: four of the five synonyms for delayed and all five for heavy traffic
+leave the answer at the baseline, while the fifth synonym, `Late`, fires, as do the antonyms
+`Early` and `Light`. Twelve unrelated words in the same slots almost never
 fire, so this is a specific match and not a general "any unseen value" effect; the one exception,
 `Meadow` in `Traffic_Status` on 10 of 66 rows, is the only spurious trigger among them.
 The two clauses are not implemented alike: the `Delay` match fires from anywhere in the turn,
@@ -228,11 +227,14 @@ delivered_customer_date > estimated_delivery_date` on delivered orders. Features
 what is known at checkout. Numbers in
 [`results/olist_positive_control.json`](results/olist_positive_control.json).
 
-Two things are dropped, and the JSON says so rather than hiding them. 2,919 orders purchased
-before the cut-off were still undelivered when the data was extracted, every one of them already
-past its promised date: 1,723 in flight and 1,188 cancelled or unavailable. The delivered-only
-filter removes them instead of labelling them late, which is a survivorship filter, not a
-censoring correction; the sensitivity row below adds the in-flight ones back. Separately, a model
+Three filters run before the model sees anything, and the JSON reports each. The 60-day
+right-censoring guard keeps only orders purchased on or before 2018-08-18, taking 99,441 orders
+down to 97,938. Of those, 2,919 were still undelivered when the data was extracted, every one of
+them already past its promised date: 1,723 in flight, 1,188 cancelled or unavailable, and 8 marked
+`delivered` with no delivery timestamp. The delivered-only filter removes all 2,919 instead of
+labelling them late, which is a survivorship filter, not a censoring correction; the sensitivity
+row below adds back the 555 of them that fall in the test window. That leaves 95,019 orders to
+model. Separately, a model
 deployed on 2018-03-01 can only train on labels that exist by then, so the training set is orders
 *delivered* before that date (53,644 orders, late rate 0.0505) and the test set is orders
 *purchased* on or after it (37,702 orders, late rate 0.0722); 3,673 orders purchased before the
@@ -248,7 +250,7 @@ split but delivered after it, 1,075 of them late, belong to neither.
 | logistic regression, in-flight orders counted late | 0.6812 [0.6718, 0.6896] | [0.626, 0.7437] | 0.1742 [0.165, 0.1844] | 0.0777 | 0.0415 (prevalence 0.0857) |
 
 The order-level bootstrap interval is within-period resampling; resampling whole months instead
-gives roughly four times the width, which is the honest uncertainty for "would this hold next
+gives six to seven times the width, which is the honest uncertainty for "would this hold next
 period". The reason is visible in the by-month table: the late rate in the test window swings from
 0.0116 in June 2018 to 0.1896 in March 2018, and the model predicts 0.0493 for that March. That is
 not a prevalence drift the model could have known about, and it is not fixed by dropping

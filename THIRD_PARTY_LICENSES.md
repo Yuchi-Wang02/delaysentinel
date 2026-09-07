@@ -3,7 +3,7 @@
 | what | licence | file |
 | --- | --- | --- |
 | model weights (`model.safetensors` on the Hub) | Llama 3.2 Community License + Acceptable Use Policy | `LICENSE`, `USE_POLICY.md`, `NOTICE` |
-| author's code, tests, demo, documentation, figures, generated result files | MIT | `LICENSE-MIT` |
+| author's code, tests, demo, documentation, figures, generated result files (except `results/olist_positive_control.json`) | MIT | `LICENSE-MIT` |
 | `scripts/train.py` (third party, kept byte-for-byte) | MIT (acon96/home-llm) with portions under Apache-2.0 (Stanford Alpaca) | this file, `LICENSES/Apache-2.0.txt` |
 | `data/smart_logistics_dataset.csv` and the derived JSONL split | CC0-1.0 | this file, `data/SPLIT.md` |
 | Olist orders used by the reference study (downloaded at run time, never committed) | CC BY-NC-SA 4.0 | this file |

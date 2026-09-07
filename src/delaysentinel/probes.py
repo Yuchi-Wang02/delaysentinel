@@ -40,9 +40,10 @@ README_V0_EXAMPLE = (
     "weight_kg: 10.5\ndistance_km: 3500\nholiday_flag: 0"
 )
 
-#: One replacement value per non-rule field (max of the CSV range for numerics, the
-#: most distinct categorical value otherwise). Used for the "does anything else move
-#: the prediction" probes on negatives and positives.
+#: One replacement value per non-rule field: the top of the CSV range for the eight bounded
+#: numerics and the latest Timestamp, 0.0 for Latitude and Longitude (whose ranges straddle
+#: zero, so neither end is an unusual value), and a distinct value for the categoricals.
+#: Used for the "does anything else move the prediction" probes on negatives and positives.
 NON_RULE_EDITS: dict[str, str] = {
     "Timestamp": "2024-12-30 20:21:58",
     "Asset_ID": "Truck_10",

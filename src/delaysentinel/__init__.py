@@ -13,4 +13,4 @@ The package contains everything needed to reproduce the numbers in the model car
 - :mod:`delaysentinel.leakage_audit` - a generic "can a one-line rule reproduce the label?" scanner
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"

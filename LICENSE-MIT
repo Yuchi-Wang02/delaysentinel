@@ -4,7 +4,9 @@ Copyright (c) 2025-2026 Yuchi Wang
 
 Applies to the author's own work in this repository: src/, tests/, scripts/ (except
 scripts/train.py, see THIRD_PARTY_LICENSES.md), space/, legacy/ (all files), docs/ (text
-and figures), results/ and runs/ (generated files) and the documentation. The model
+and figures), results/ (generated files, except results/olist_positive_control.json, which is a
+derivative of a ShareAlike dataset and is offered under CC BY-NC-SA 4.0; see
+THIRD_PARTY_LICENSES.md), runs/ (generated files) and the documentation. The model
 weights are NOT covered by this file; they are distributed under the Llama 3.2 Community
 License (LICENSE).
 

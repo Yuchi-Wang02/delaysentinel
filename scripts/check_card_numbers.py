@@ -68,7 +68,7 @@ def strip_markdown(text: str) -> str:
     return text
 
 
-def normalise(token: str) -> set[str]:
+def normalise(token: str, micro_scaled: bool = True) -> set[str]:
     token = token.rstrip(",").replace(",", "")
     out = {token}
     try:
@@ -78,11 +78,11 @@ def normalise(token: str) -> set[str]:
     if value.is_integer() and "e" not in token.lower() and "." not in token:
         out.add(str(int(value)))
     if "e" in token.lower():  # 8.3e-07 should match the same value written plainly
-        out |= _float_forms(value)
+        out |= _float_forms(value, micro_scaled=micro_scaled)
     return out
 
 
-def _float_forms(value: float) -> set[str]:
+def _float_forms(value: float, micro_scaled: bool = True) -> set[str]:
     """Every spelling of ``value`` a document may legitimately use.
 
     Rounding stops at three decimals, and values in (0, 1) are never offered with a single
@@ -96,7 +96,7 @@ def _float_forms(value: float) -> set[str]:
         # is at least 1, so that 1e-08 cannot slip through as "0.010".
         forms = {repr(value), str(value), f"{value:.1e}", f"{value:.2e}"}
         scaled = value * 1e6
-        if abs(scaled) >= 1:
+        if micro_scaled and abs(scaled) >= 1:
             forms |= {f"{scaled:.2f}", f"{scaled:.3f}"}
         return forms
     forms = {repr(value), str(value)}
@@ -190,7 +190,8 @@ def allowlist() -> set[str]:
         for line in ALLOWLIST.read_text(encoding="utf-8").splitlines():
             line = line.split("#", 1)[0].strip()
             if line:
-                acc |= normalise(line)
+                # an allowlisted value backs only itself: 5e-5 must not also allow "50.00"
+                acc |= normalise(line, micro_scaled=False)
     return acc
 
 

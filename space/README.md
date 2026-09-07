@@ -22,7 +22,7 @@ fine-tuned model reproduces the rule `Shipment_Status == "Delayed" OR Traffic_St
 that defines the Kaggle label; editing those two fields flips the answer, editing any other
 field does not, and deleting them does not stop the model from answering.
 
-The code of this Space is MIT (`LICENSE-MIT`). The weights it downloads at start-up are under
+The code of this Space is MIT (`LICENSE-MIT`). The weights it downloads on the first request are under
 the Llama 3.2 Community License; copies of `LICENSE`, `USE_POLICY.md` and `NOTICE` are in this
 Space's Files tab.
 

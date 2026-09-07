@@ -242,8 +242,8 @@ way and with both rule fields deleted. Model card, evaluation JSON and probes:
         """
 <small>Weights: Llama 3.2 Community License; copies of LICENSE, USE_POLICY.md and NOTICE are in this Space's
 Files tab and in the model repo. Code: MIT (LICENSE-MIT). Data: Kaggle ziya07, CC0. Every number in the model
-card comes from <code>results/eval.json</code> in the GitHub repository. This demo downloads the published bf16
-weights (2.47 GB) on the first request and runs them on the Space's CPU.</small>
+card comes from <code>results/*.json</code> and <code>runs/</code> in the GitHub repository. This demo
+downloads the published bf16 weights (2.47 GB) on the first request and runs them on the Space's CPU.</small>
 """
     )
 

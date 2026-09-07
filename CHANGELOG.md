@@ -48,6 +48,55 @@ not a naive substring scan of the whole prompt.
   unit of the eval-loss column and the rounding boundary of the training log, are now
   listed in the allowlist with their reasons.
 
+### Corrections from the pre-publication audit
+
+A second read-only pass over the finished tree, with every finding put to three independent
+refuters, found twelve published statements the committed evidence does not support. All are
+fixed here; none of them touches the weights, the frozen split or any result value.
+
+- **Licence.** `LICENSE-MIT` granted MIT over all of `results/`, including
+  `results/olist_positive_control.json`, which `THIRD_PARTY_LICENSES.md` correctly places under
+  CC BY-NC-SA 4.0 as a derivative of a ShareAlike dataset. The operative licence file now carries
+  the same carve-out as the document that explains it, and a test keeps the two in agreement.
+- **Attribution.** The entry above described `scripts/train.py` as byte-for-byte upstream plus a
+  header. It is upstream plus a header *and the three changes* that `THIRD_PARTY_LICENSES.md`
+  lists. Calling a modified copy unmodified is the same class of error as not attributing it.
+- **The control-word cell** claimed 11 of 12 words leave `Shipment_Status` at the baseline and
+  that none fires, which contradicts itself. All twelve leave it at the baseline; the 11-of-12
+  belongs to `Traffic_Status`, where `Meadow` is the exception.
+- **The synonym reading.** `Late` is tagged a synonym in `results/eval.json` and fires on every
+  row, so "five genuine synonyms per clause leave the answer at the baseline" was wrong in both
+  case studies and the card. Four of the five for delayed, and all five for heavy traffic.
+- **Numbers.** The minimum absolute margin on the two-field edit row is 12.5, not 12.4. The
+  month-block interval is six to seven times the order-level width, not four. The in-flight
+  sensitivity run adds the 555 orders that fall in the test window, not all 1,723 in flight.
+- **The Olist filter paragraph** described three filters as two, never mentioned the
+  right-censoring cut-off, and its parts did not sum to its whole: 1,723 in flight plus 1,188 not
+  a delivery falls 8 short of 2,919, and those 8 are orders marked `delivered` that carry no
+  delivery timestamp.
+- **A note inside `results/olist_positive_control.json`** said the scanner found no pure
+  single-column condition immediately above the three purity-1.0 conditions it had printed. They
+  are pure-*negative* cells of 20 to 26 rows; the note now says so. Regenerating the file changed
+  that string and the timestamp and nothing else, which is also a reproducibility check.
+- **The publication-status block** would have become false at the moment of publication, because
+  the publish script uploads the card verbatim: a reader on the Hub would have been told that
+  nothing had been pushed and that the Hub still showed the September 2025 card. It is now worded
+  so that it stays true on both sides.
+- **Two overbroad claims** that every number comes from `results/eval.json`, in the demo and in
+  the evaluation module's docstring; the Olist, scanner and training-curve numbers do not.
+- **The training-loss figure** was titled "Training loss is exactly 0.0", which the card itself
+  denies two sections later. The plotted series is the logged five-step mean rounded to four
+  decimals, and it reaches 0.0000 between steps 45 and 70.
+- **The number checker** expanded allowlist entries through the times-1e-6 rescaling, so
+  allowlisting `5e-5` silently also allowlisted its times-1e-6 spellings, which appear in no
+  result file. An allowlisted value now backs only itself.
+- **`positive_control.download`** imported `huggingface_hub` even when every file was already on
+  disk, so a fully offline re-run needed a network library it never called.
+
+Three test files now guard what the presence check cannot see: the probe prose against
+`results/eval.json`, the three licence statements against each other, and the publish manifest
+against every in-repository link.
+
 ### Corrections to the publish script
 
 - The card and both case studies link to `results/olist_positive_control.json`, and the
@@ -58,8 +107,9 @@ not a naive substring scan of the whole prompt.
 ### Attribution
 
 - The vendored training script is pinned to upstream `136d2bf`, the last commit touching it
-  before the September 2025 training, not to a commit dated after it. The file is byte-for-
-  byte upstream plus a header, and is excluded from the formatter so it stays that way.
+  before the September 2025 training, not to a commit dated after it. Against that commit the
+  file differs by the attribution header and the three changes listed in
+  `THIRD_PARTY_LICENSES.md`, and it is excluded from the formatter so the diff stays that small.
 - Olist is CC BY-NC-SA 4.0. Its section in `THIRD_PARTY_LICENSES.md` records the
   attribution, the non-commercial condition, and that no rows are committed.
 
@@ -73,9 +123,8 @@ described did.
 **Publication status.** This repository is complete and its checks pass. The Hub side
 (rename to `Llama-3.2-1B-DelaySentinel`, the rewritten card, the licence files, the dataset
 mirror and the demo Space) is pushed by `scripts/publish_hf.py`, which needs the author's
-write token. Until that script has been run, the Hub still shows the September 2025 card
-and the links in the README that point at the renamed repo, the dataset mirror and the
-Space do not resolve. The README states this in its *Publication status* line.
+write token. A link in the README that does not resolve is a step of that script that has
+not been run yet.
 
 ### Findings that drove the rewrite
 

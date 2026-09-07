@@ -69,7 +69,8 @@ pipeline 是跑通的。训练 loss 的日志值在第 50 步、也就是第一�
 - 把 43 个"只因 Heavy 而为正"的样本的 `Traffic_Status` 改成 `Clear`：43/43 翻成 0。
 - 把 84 个负例的 `Traffic_Status` 改成 `Heavy`，或把 `Shipment_Status` 改成 `Delayed`：各 84/84 翻成 1。
   合计 261 次规则字段编辑、177 个不同的行，全部按规则翻转。
-- 改其余 13 个字段中的一个（3,000 次单字段编辑）或同时改两个（另 200 次）：0 个预测变化，每条的 margin
+- 改其余 13 个字段中的一个（每行 15 次改写，因为 `Logistics_Delay_Reason` 用了三个替换值，共 3,000 次
+  单字段编辑）或同时改两个（另 200 次）：0 个预测变化，每条的 margin
   绝对值都在 12 以上。这 3,200 次里有 197 次因为该行本来就是那个值而没有真正改动文本。
 - 从每条 prompt 里删掉两个规则行：模型对全部 200 行回答 0。
 
@@ -79,10 +80,10 @@ pipeline 是跑通的。训练 loss 的日志值在第 50 步、也就是第一�
 仍然是 1；`HEAVY`、`heavy`、截断的 `Heav`、`Not Heavy`，66 行全部仍然是 1。真学会了规则的模型对
 `Not Delayed` 应该回答 0。
 
-**词义同样不影响，而且是双向的。** `Behind schedule`、`Postponed`、`Overdue`、`Held up`、`Pending` 都*不*
-触发，只剩满足另一子句的 23 行；`Congested`、`Jammed`、`Gridlock`、`Slow`、`Dense`、`Free-flowing`、
-`Moderate` 也一样。但 `Late`、`Early`、`Light` 每一行都触发。每个子句五个真正的同义词被读成"没延误"，两个
-反义词却被读成"延误"。
+**词义基本不影响，少数影响的地方还指错了方向。** `Behind schedule`、`Postponed`、`Overdue`、`Held up`、
+`On Time`、`Pending` 都*不*触发，只剩满足另一子句的 23 行；`Congested`、`Jammed`、`Gridlock`、`Slow`、
+`Dense`、`Free-flowing`、`Moderate` 也一样。但 `Late`、`Early`、`Light` 每一行都触发。`Delayed` 的五个同义词
+里有四个、`Heavy` 的五个同义词全部被读成"没延误"，而第五个同义词 `Late` 和两个反义词却被读成"延误"。
 
 **字段也不影响。** 把 `Heavy` 或 `Delayed` 写进 `Logistics_Delay_Reason`，把 `Delayed` 写进 `Asset_ID`，
 或者把两个值在规则字段之间对调，84 个负例全部输出 1。改列名、打乱 15 行的顺序，则完全没有变化。
@@ -115,12 +116,13 @@ pipeline 是跑通的。训练 loss 的日志值在第 50 步、也就是第一�
 
 logistic regression 的 AUROC 是 0.6908，按订单重抽样的区间是 [0.6819, 0.6993]，按整月重抽样的区间是
 [0.6329, 0.7599]；AUPRC 0.155，对比 prevalence 0.0722；histogram gradient boosting 是 0.6507 / 0.1176；
-只按承诺的送达周期排序是 0.5568（`figures/fig_positive_control.png`）。按月重抽样的区间宽度是按订单的四倍，
-而"下一期还成不成立"这个问题对应的正是后者。
+只按承诺的送达周期排序是 0.5568（`figures/fig_positive_control.png`）。按月重抽样的区间宽度约为按订单的七
+倍，而"下一期还成不成立"这个问题对应的正是后者。
 
 这个设置有两处问题，JSON 里如实写着而不是藏起来。第一，2,919 条在截止日前下单的订单在数据抽取时仍未送达，
-且全部已过承诺日期；"只取已送达"的过滤器把它们丢掉，而不是记为 late。把其中在途的 1,723 条计为 late，测试期
-prevalence 从 0.0722 升到 0.0857，AUROC 变成 0.6812。第二，模型跨切分点失准：平均预测 0.0413，实际 0.0722。
+且全部已过承诺日期；"只取已送达"的过滤器把它们丢掉，而不是记为 late。把其中落在测试窗口内的 555 条计为
+late，测试集就从 37,702 条（2,722 条 late）变成 38,257 条（3,277 条 late），prevalence 从 0.0722 升到
+0.0857，AUROC 变成 0.6812。第二，模型跨切分点失准：平均预测 0.0413，实际 0.0722。
 这不是模型本可预见的基率漂移——测试窗口内的月度延误率从 2018 年 6 月的 0.0116 一直摆到 3 月的 0.1896，而模型
 对那个 3 月的平均预测只有 0.0493。去掉 `purchase_month` 也修不好（同月 0.0565）。本次没有做任何重新校准。
 

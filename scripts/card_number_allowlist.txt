@@ -69,3 +69,4 @@ iii      # license clause
 12       # control words
 5e-5     # the rounding boundary of the 4-decimal training log, quoted in runs/RUNS.md as an explanation, not as a result
 1e-6     # the unit of the eval-loss column in runs/RUNS.md and README.md, not a value
+555      # 38,257 - 37,702: the test-window orders the in-flight sensitivity run adds (stated in the note field of results/olist_positive_control.json)
