@@ -189,8 +189,8 @@ CPU checks, full model execution, and the independent Olist study.
 
 ## Attribution and licenses
 
-**Built with Llama.** The weights are subject to the [Llama 3.2 Community License](LICENSE)
-and [Acceptable Use Policy](USE_POLICY.md), with attribution in [NOTICE](NOTICE).
+**Built with Llama.** The weights are subject to the [Llama 3.2 Community License](https://huggingface.co/Yuchiwang02/Llama-3.2-1B-DelaySentinel/blob/main/LICENSE)
+and [Acceptable Use Policy](USE_POLICY.md), with attribution in [NOTICE](https://huggingface.co/Yuchiwang02/Llama-3.2-1B-DelaySentinel/blob/main/NOTICE).
 The full model name is `Llama-3.2-1B-DelaySentinel`; the original Hub name redirects to this
 repository.
 
@@ -199,7 +199,7 @@ under MIT, with Stanford Alpaca portions under Apache-2.0. The preserved copy ha
 changes relative to the identified upstream revision; see [third-party attribution](THIRD_PARTY_LICENSES.md)
 and the [Apache license](LICENSES/Apache-2.0.txt).
 
-Project code and documentation are distributed under [MIT](LICENSE-MIT). The Olist aggregate
+Project code and documentation are distributed under [MIT](https://huggingface.co/Yuchiwang02/Llama-3.2-1B-DelaySentinel/blob/main/LICENSE-MIT). The Olist aggregate
 result is distributed under CC BY-NC-SA 4.0. Implementation and documentation use AI assistance;
 linked source records and the attribution file describe the project materials and reused work.
 
