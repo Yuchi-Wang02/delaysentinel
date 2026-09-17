@@ -25,7 +25,8 @@ jobs:
         # Exact for the rule, the depth-2 tree, logistic regression and all-positive. The three
         # gradient-boosting variants are not bit-identical across operating systems (the committed
         # numbers come from Windows; Linux flips one of the 200 test rows), so they must agree to
-        # within one row: |acc| <= 0.005, |f1| <= 0.01, |auroc| <= 0.005, confusion cells <= 1.
+        # within one row: |acc| <= 0.005, |f1| <= 0.01, |auroc| <= 0.005 (differences rounded to
+        # 6 places so 0.475 - 0.470 counts as 0.005), confusion cells <= 1.
         run: |
           python -m delaysentinel.eval --skip-model --skip-cv --out /tmp/eval_ci.json
           python - <<'EOF'
@@ -49,7 +50,7 @@ jobs:
                       cells = [abs(x - y) for gr, wr in zip(got, want) for x, y in zip(gr, wr)]
                       assert max(cells) <= 1, (name, key, got, want)
                   else:
-                      assert abs(got - want) <= TOL[key], (name, key, got, want)
+                      assert round(abs(got - want), 6) <= TOL[key], (name, key, got, want)
                   within.append((name, key, got, want))
               if not any(w[0] == name for w in within):
                   exact.append(name)
