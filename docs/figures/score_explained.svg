@@ -13,4 +13,3 @@
 <text x="40" y="578" class="body white">This rule reproduces all 1,000 source labels.</text>
 <text x="40" y="615" class="small muted">Historical split includes training-time evaluation rows.</text>
 <text x="40" y="645" class="small muted">Input-recoverable labels do not establish advance forecasting.</text></svg>
-
