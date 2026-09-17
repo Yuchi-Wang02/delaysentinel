@@ -21,6 +21,12 @@ tags:
 
 # Llama-3.2-1B-DelaySentinel: a label-leakage case study (not a delay predictor)
 
+[![tests](https://github.com/Yuchi-Wang02/delaysentinel/actions/workflows/test.yml/badge.svg)](https://github.com/Yuchi-Wang02/delaysentinel/actions/workflows/test.yml)
+[Code on GitHub](https://github.com/Yuchi-Wang02/delaysentinel) ·
+[Model card on the Hub](https://huggingface.co/Yuchiwang02/Llama-3.2-1B-DelaySentinel) ·
+[Frozen split](https://huggingface.co/datasets/Yuchiwang02/smart-logistics-delay-split-v0) ·
+[Case study](docs/case_study.md) (中文: [docs/case_study.zh.md](docs/case_study.zh.md))
+
 **In one screen**
 
 - **Built (Sept 2025).** Full-parameter fine-tune of Llama-3.2-1B-Instruct on a 1,000-row Kaggle
@@ -41,11 +47,12 @@ tags:
 
 **Built with Llama.**
 
-**Publication status.** Both public copies are created by the author: `git push` for the GitHub
-repository, and `scripts/publish_hf.py` for the Hub side, which renames `Yuchiwang02/DelaySentinel`
-to `Yuchiwang02/Llama-3.2-1B-DelaySentinel` and uploads this card, the licence files, the results,
-the figures, the dataset mirror and the demo Space. If a link below to the GitHub repository, the
-dataset mirror or the Space does not resolve, that step has not been run yet.
+**Publication status.** The GitHub repository, the renamed Hub repository
+`Yuchiwang02/Llama-3.2-1B-DelaySentinel` (the old name `Yuchiwang02/DelaySentinel` redirects) and the dataset mirror
+are live; `scripts/publish_hf.py` uploads this card, the licence files, the results, the figures and the dataset
+mirror from the repository, so the two copies of the card are the same file. The demo Space has not been created:
+hosting a Gradio Space on the free CPU tier requires a paid Hugging Face plan, so its link below does not resolve;
+the demo code is in `space/` and runs locally with `python space/app.py`.
 
 **Reusable pieces.** `python -m delaysentinel.leakage_audit --csv <file> --target <col>` finds
 pure single-column conditions and the greedy OR-rule in any table; `delaysentinel.probes` rewrites
@@ -55,7 +62,7 @@ quotes a number that `results/*.json` or `runs/` does not contain.
 
 - Numbers: [`results/eval.json`](results/eval.json) · per-row outputs: [`results/test_predictions.csv`](results/test_predictions.csv)
 - Code, tests and figures: [github.com/Yuchi-Wang02/delaysentinel](https://github.com/Yuchi-Wang02/delaysentinel)
-- Demo Space (created by the publish script): [Yuchiwang02/delaysentinel-leakage-demo](https://huggingface.co/spaces/Yuchiwang02/delaysentinel-leakage-demo)
+- Demo Space (not created yet; see Publication status): [Yuchiwang02/delaysentinel-leakage-demo](https://huggingface.co/spaces/Yuchiwang02/delaysentinel-leakage-demo)
 - The story in prose: [`docs/case_study.md`](docs/case_study.md) · 中文: [`docs/case_study.zh.md`](docs/case_study.zh.md)
 
 Terms used below. *SFT* = supervised fine-tuning; *bf16* = 16-bit brain-float weights; *greedy
