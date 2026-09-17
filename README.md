@@ -418,8 +418,10 @@ python scripts/check_card_numbers.py
 ```
 
 The test suite needs no model download. `--skip-model` runs the rule and the sklearn baselines
-only, which is what CI does, and CI asserts that those numbers reproduce exactly under the pinned
-`scikit-learn`.
+only, which is what CI does. CI asserts that the rule, the depth-2 tree, logistic regression and
+all-positive reproduce exactly under the pinned `scikit-learn`, and that the three gradient-boosting
+variants agree with the committed numbers to within one of the 200 test rows: gradient boosting is
+not bit-identical across operating systems, and the committed numbers were produced on Windows.
 
 ## Intended use and out-of-scope use
 

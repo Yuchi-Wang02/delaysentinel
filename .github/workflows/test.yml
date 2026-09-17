@@ -22,16 +22,37 @@ jobs:
       - name: Every number in the documents must exist in results/, runs/ or the reasoned allowlist
         run: python scripts/check_card_numbers.py
       - name: Baselines-only evaluation must reproduce the committed sklearn numbers
+        # Exact for the rule, the depth-2 tree, logistic regression and all-positive. The three
+        # gradient-boosting variants are not bit-identical across operating systems (the committed
+        # numbers come from Windows; Linux flips one of the 200 test rows), so they must agree to
+        # within one row: |acc| <= 0.005, |f1| <= 0.01, |auroc| <= 0.005, confusion cells <= 1.
         run: |
           python -m delaysentinel.eval --skip-model --skip-cv --out /tmp/eval_ci.json
           python - <<'EOF'
           import json
           a = json.load(open("/tmp/eval_ci.json"))["baselines_split_v0"]
           b = json.load(open("results/eval.json"))["baselines_split_v0"]
+          TOL = {"acc": 0.005, "f1": 0.01, "auroc": 0.005}
+          exact, within = [], []
           for name, entry in b.items():
-              if isinstance(entry, dict) and "acc" in entry:
-                  for key in ("acc", "f1", "auroc", "confusion"):
-                      if key in entry:
-                          assert a[name][key] == entry[key], (name, key, a[name][key], entry[key])
-          print("baselines reproduced:", [n for n in b if isinstance(b[n], dict) and "acc" in b[n]])
+              if not (isinstance(entry, dict) and "acc" in entry):
+                  continue
+              boosting = name.startswith("gradient_boosting")
+              for key in ("acc", "f1", "auroc", "confusion"):
+                  if key not in entry:
+                      continue
+                  got, want = a[name][key], entry[key]
+                  if got == want:
+                      continue
+                  assert boosting, (name, key, got, want)
+                  if key == "confusion":
+                      cells = [abs(x - y) for gr, wr in zip(got, want) for x, y in zip(gr, wr)]
+                      assert max(cells) <= 1, (name, key, got, want)
+                  else:
+                      assert abs(got - want) <= TOL[key], (name, key, got, want)
+                  within.append((name, key, got, want))
+              if not any(w[0] == name for w in within):
+                  exact.append(name)
+          print("reproduced exactly:", exact)
+          print("within one row of 200:", within or "none (all exact)")
           EOF

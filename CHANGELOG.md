@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.2 — September 2026: cross-platform tolerance for the boosting baselines
+
+The first CI run on GitHub (Linux) failed the baseline-reproduction step: the
+`gradient_boosting_without_rule_fields_and_reason` row scored one of the 200 test rows differently
+from the committed Windows numbers. Gradient boosting is not bit-identical across operating
+systems even with the pinned `scikit-learn`. CI now requires exact reproduction for the rule, the
+depth-2 tree, logistic regression and all-positive, and agreement to within one row for the three
+gradient-boosting variants; the README says so. Nothing else changed: the weights, the frozen
+split, `results/eval.json` and every documented number are as in v1.0.1.
+
 ## v1.0.1 — September 2026: corrections from the internal review
 
 A read-only multi-agent review of the v1.0.0 tree found claims that the evidence did not
