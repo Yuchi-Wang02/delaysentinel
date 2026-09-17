@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-09-17: portfolio presentation and documentation structure
+
+The project entry now follows **Build · Evaluate · Explain**: published model artifacts,
+the baseline comparison, and concrete prompt-rewrite findings lead the presentation. A
+dedicated model card, evaluation reference, Olist study and reproduction guide give each
+audience a direct route to the details. English and Chinese case studies share the same
+evidence and presentation figures.
+
+- Separate GitHub's portfolio introduction from the Hugging Face model card, with a
+  documentation-only publishing path and explicit source-to-destination mappings.
+- Present the perfect historical score alongside the matching simple baseline, and place
+  the unrelated-note experiment beside its original-input comparison.
+- Keep the separate Olist results attached to their classical models, temporal split and
+  calibration scope. Month-block intervals describe sensitivity within the observed months.
+- State probe findings as observations under the tested rewrites. Keep dataset-label rules,
+  model responses and hypotheses about internal mechanisms distinct.
+- Describe source-data patterns as signals consistent with synthetic construction; the
+  generation history is unconfirmed. A `Delivered` status alone does not establish timeliness.
+- Align the training attribution around the modified upstream script and make the local
+  demo's unhosted status explicit. Consolidate historical training and split details in
+  their source documents.
+
+This presentation revision preserves model weights, frozen data and splits, saved experiment
+results, training records and experiment behavior. Earlier entries below retain the project
+history; the current model card and method pages contain the active interpretation.
+
 ## v1.0.2 — September 2026: cross-platform tolerance for the boosting baselines
 
 The first CI run on GitHub (Linux) failed the baseline-reproduction step: the

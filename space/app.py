@@ -1,9 +1,8 @@
-"""Gradio demo: watch a 1.24B-parameter model behave like a two-clause rule.
+"""Local Gradio demo for inspecting model responses to record edits.
 
-The point of this Space is not that the model predicts delays. It is that you can
-edit the two fields the Kaggle label was built from and watch the prediction flip,
-edit any other field and watch nothing happen, or delete the two fields and watch
-the model answer anyway.
+Compare an original record, a rule-field rewrite and a prompt with those fields
+removed. The dataset's label rule supplies a reference; the generated outputs
+show what the published checkpoint does on the specific inputs entered.
 """
 
 from __future__ import annotations
@@ -27,7 +26,7 @@ from delaysentinel.prompting import FIELDS, RULE_FIELDS, drop_fields, parse_labe
 PRIMARY_ID = os.environ.get("MODEL_ID", "Yuchiwang02/Llama-3.2-1B-DelaySentinel")
 FALLBACK_ID = os.environ.get(
     "MODEL_ID_FALLBACK", "Yuchiwang02/DelaySentinel"
-)  # pre-rename id, kept for the redirect window
+)  # historical model id; the Hub redirects it to the current repository
 RULE = 'Logistics_Delay = 1  iff  Shipment_Status == "Delayed"  OR  Traffic_Status == "Heavy"'
 MAX_ROWS = 200
 
@@ -103,14 +102,14 @@ def predict_single(*values):
     dt = time.time() - t0
     rule = int(rule_predict(pd.DataFrame([fields]))[0])
     label = parse_label(raw_full)
-    verdict = {None: "unparsable", 0: "0 = no delay", 1: "1 = delay"}[label]
+    verdict = {None: "unparsable", 0: "dataset label 0", 1: "dataset label 1"}[label]
     agree = "n/a" if label is None else ("yes" if label == rule else "NO")
     summary = (
         f"**Model output:** `{raw_full}` → {verdict}\n\n"
         f"**Two-clause rule says:** {rule}  ·  model agrees with the rule: **{agree}**\n\n"
         f"**Same row with {flip_note}:** `{raw_swapped}`\n\n"
         f"**Same row with both rule fields deleted from the prompt:** `{raw_without}` "
-        f"(no rule can apply here; the model still answers)\n\n"
+        f"(the two-field reference rule is undefined on this reduced prompt)\n\n"
         f"<small>3 generations in {dt:.1f} s on {scorer.device}.</small>"
     )
     return summary, full
@@ -146,7 +145,8 @@ def predict_csv(file, drop_rule):
     pos = sum(1 for lab in labels if lab == 1) / len(out)
     prefix = f"(showing the first {MAX_ROWS} of {n_total} rows) " if n_total > MAX_ROWS else ""
     msg = (
-        f"{prefix}{len(out)} rows scored in {dt:.1f} s. Model agrees with the rule on {agree_rate:.0%} of rows; "
+        f"{prefix}{len(out)} rows scored in {dt:.1f} s. "
+        f"Model agrees with the original rows' rule labels on {agree_rate:.0%} of rows; "
         f"model positive rate {pos:.0%}."
     )
     if "Logistics_Delay" in frame.columns:
@@ -160,22 +160,27 @@ def predict_csv(file, drop_rule):
     return out, msg
 
 
-with gr.Blocks(title="Llama-3.2-1B-DelaySentinel: a leakage demo") as demo:
+with gr.Blocks(title="Llama-3.2-1B-DelaySentinel: model behavior demo") as demo:
     gr.Markdown(
         """
-# Llama-3.2-1B-DelaySentinel — a label-leakage demo, not a delay predictor
+# Llama-3.2-1B-DelaySentinel: explore model behavior
 
 **Built with Llama.** This 1.24B-parameter model was fine-tuned to answer `Logistics_Delay: 0|1`
-from 15 fields of a synthetic Kaggle logistics table. It scores 100% on its test split because
-the label *is* the rule below, and a depth-2 decision tree scores the same:
+from 15 fields of a Kaggle logistics table. On the historical 200-row evaluation split,
+the checkpoint and a depth-2 decision tree both score 100%. The rule below reconstructs
+the label across all 1,000 source rows:
 
 ```
 Logistics_Delay = 1  iff  Shipment_Status == "Delayed"  OR  Traffic_Status == "Heavy"
 ```
 
-Try it: change **Shipment_Status** or **Traffic_Status** and the answer flips; change anything
-else and it does not. The result also shows the same row with the rule fields flipped the other
-way and with both rule fields deleted. Model card, evaluation JSON and probes:
+**Try a comparison.** Edit a field, score the record, and inspect the exact prompt. Each run
+also shows a rewrite that changes the rule's answer and a version with both rule fields removed.
+Custom values let you explore where a model response differs from the literal rule.
+
+This is a local exploration tool; a hosted Space has not been created. Outputs describe this
+checkpoint's behavior on the entered text and are not delivery-risk estimates. The historical
+split was partly exposed during training-time evaluation. Saved results and tested rewrites:
 [Yuchiwang02/Llama-3.2-1B-DelaySentinel](https://huggingface.co/Yuchiwang02/Llama-3.2-1B-DelaySentinel)
 · code: [github.com/Yuchi-Wang02/delaysentinel](https://github.com/Yuchi-Wang02/delaysentinel)
 """
@@ -240,10 +245,10 @@ way and with both rule fields deleted. Model card, evaluation JSON and probes:
         go.click(predict_csv, inputs=[file_in, drop], outputs=[table, status])
     gr.Markdown(
         """
-<small>Weights: Llama 3.2 Community License; copies of LICENSE, USE_POLICY.md and NOTICE are in this Space's
-Files tab and in the model repo. Code: MIT (LICENSE-MIT). Data: Kaggle ziya07, CC0. Every number in the model
-card comes from <code>results/*.json</code> and <code>runs/</code> in the GitHub repository. This demo
-downloads the published bf16 weights (2.47 GB) on the first request and runs them on the Space's CPU.</small>
+<small>Weights: Llama 3.2 Community License; LICENSE, USE_POLICY.md and NOTICE are in the model repository.
+Code: MIT (LICENSE-MIT). Source data: Kaggle ziya07, listed as CC0. Saved results and training records
+are linked from the model card. The first prediction downloads the published bf16 weights (2.47 GB);
+the result reports the device used by the model wrapper.</small>
 """
     )
 

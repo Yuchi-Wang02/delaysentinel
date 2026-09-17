@@ -1,4 +1,4 @@
-# Numbers that may appear in README.md without being present in results/ or runs/.
+# Numbers that may appear in checked documentation without being present in results/ or runs/.
 # One number per line; everything after '#' is the reason.
 0        # labels / percentages
 1        # labels, section numbers, "1 file"
@@ -27,6 +27,7 @@
 2026     # year
 3.2      # Llama 3.2
 3.1      # Llama 3 chat template family mention
+3.10     # Minimum Python version required by pyproject.toml (requires-python >=3.10)
 4.55.4   # transformers version
 128004   # <|finetune_right_pad_id|>
 128256   # vocabulary size

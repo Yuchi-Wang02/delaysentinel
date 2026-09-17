@@ -19,9 +19,10 @@ def test_notice_matches_license_clause_verbatim(root):
 
 
 def test_built_with_llama_and_name(root):
-    for rel in ("README.md", "space/README.md", "space/app.py"):
+    for rel in ("README.md", "MODEL_CARD.md", "space/README.md", "space/app.py"):
         assert "Built with Llama" in (root / rel).read_text(encoding="utf-8"), rel
-    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "Llama-3.2-1B-DelaySentinel" in (root / "README.md").read_text(encoding="utf-8")
+    readme = (root / "MODEL_CARD.md").read_text(encoding="utf-8")
     title = next(line for line in readme.splitlines() if line.startswith("# "))
     assert title.startswith("# Llama")
 
@@ -41,10 +42,12 @@ def test_licence_files_present_and_published(root):
         root / "LICENSES" / "Apache-2.0.txt"
     ).read_text(encoding="utf-8")
     publish = _load_publish(root)
-    assert {"LICENSE", "NOTICE", "USE_POLICY.md", "THIRD_PARTY_LICENSES.md", "LICENSE-MIT"} <= set(publish.MODEL_FILES)
+    manifest = publish.model_manifest()
+    published = {destination for _, destination in manifest}
+    assert {"LICENSE", "NOTICE", "USE_POLICY.md", "THIRD_PARTY_LICENSES.md", "LICENSE-MIT"} <= published
     assert {"LICENSE", "NOTICE", "USE_POLICY.md"} <= set(publish.SPACE_LICENCE_FILES)
-    for rel in publish.MODEL_FILES:
-        assert (root / rel).exists(), rel
+    for source, _ in manifest:
+        assert (root / source).is_file(), source
 
 
 def test_train_script_header(root):

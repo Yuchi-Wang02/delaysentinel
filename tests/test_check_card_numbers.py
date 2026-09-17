@@ -25,13 +25,31 @@ def test_committed_docs_pass(root):
 )
 def test_a_wrong_metric_is_caught(root, tmp_path, original, wrong):
     mod = _load(root)
-    readme = (root / "README.md").read_text(encoding="utf-8")
-    if original not in readme:
-        pytest.skip(f"{original} no longer appears in README.md")
-    bad = tmp_path / "README.md"
-    bad.write_text(readme.replace(original, wrong, 1), encoding="utf-8")
+    # A fixed sample exercises the checker even when the landing page is shortened.
+    bad = tmp_path / "sample.md"
+    bad.write_text(f"Observed accuracy: {original}.\n", encoding="utf-8")
+    assert mod.check(docs=[bad]) == []
+    bad.write_text(f"Observed accuracy: {wrong}.\n", encoding="utf-8")
     missing = mod.check(docs=[bad])
     assert any(token == wrong for _, token, _ in missing), f"{wrong} slipped through"
+
+
+def test_required_document_cannot_disappear(root, tmp_path):
+    mod = _load(root)
+    with pytest.raises(FileNotFoundError, match="required documentation"):
+        mod.check(docs=[tmp_path / "missing.md"])
+
+
+def test_new_public_documents_are_checked(root):
+    mod = _load(root)
+    checked = {path.relative_to(root).as_posix() for path in mod.DOCS}
+    assert {
+        "README.md",
+        "MODEL_CARD.md",
+        "docs/evaluation.md",
+        "docs/olist_reference.md",
+        "docs/reproduce.md",
+    } <= checked
 
 
 def test_known_set_is_not_inflated(root):

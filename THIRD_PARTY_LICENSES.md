@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | model weights (`model.safetensors` on the Hub) | Llama 3.2 Community License + Acceptable Use Policy | `LICENSE`, `USE_POLICY.md`, `NOTICE` |
 | author's code, tests, demo, documentation, figures, generated result files (except `results/olist_positive_control.json`) | MIT | `LICENSE-MIT` |
-| `scripts/train.py` (third party, kept byte-for-byte) | MIT (acon96/home-llm) with portions under Apache-2.0 (Stanford Alpaca) | this file, `LICENSES/Apache-2.0.txt` |
+| `scripts/train.py` (third party, with three documented project modifications) | MIT (acon96/home-llm) with portions under Apache-2.0 (Stanford Alpaca) | this file, `LICENSES/Apache-2.0.txt` |
 | `data/smart_logistics_dataset.csv` and the derived JSONL split | CC0-1.0 | this file, `data/SPLIT.md` |
 | Olist orders used by the reference study (downloaded at run time, never committed) | CC BY-NC-SA 4.0 | this file |
 
@@ -19,10 +19,11 @@ of the agreement, to display "Built with Llama", and to begin the model name wit
 
 ## Training script: acon96/home-llm (MIT) with Stanford Alpaca portions (Apache-2.0)
 
-`scripts/train.py` is **not the author's work**. It is `train.py` from
-[acon96/home-llm](https://github.com/acon96/home-llm), kept byte-for-byte as it was run in
-September 2025 apart from an added header comment; it is excluded from this project's
-formatter and linter for that reason.
+`scripts/train.py` is based on `train.py` from
+[acon96/home-llm](https://github.com/acon96/home-llm), with the three project-specific
+modifications below and an attribution header. Its historical implementation is retained for
+traceability and excluded from this project's formatter and linter. The underlying training
+framework remains attributed to its upstream authors.
 
 Upstream's `LICENSES.txt` licenses the project code under the MIT License with the copyright
 line **"Copyright 2024 Alex O'Connell"**, and records that portions of the project are re-used
@@ -35,7 +36,7 @@ Gulrajani, Tianyi Zhang, Yann Dubois, Xuechen Li"). The data-collator structure 
 training run (September 2025) is **`136d2bf`, 2025-02-26**. Upstream later removed the file
 (the Axolotl migration began with `55f2541` on 2025-12-01). Diffing the copy in this repository
 against `136d2bf`, ignoring trailing whitespace that the author's editor stripped, leaves exactly
-three changes, all made by the author in 2025:
+three project-specific changes in the archived training copy:
 
 1. `_get_train_sampler(self)` became `_get_train_sampler(self, dataset)`, with the body and
    `super()` call updated to match, plus a one-line comment and a docstring. A newer
@@ -46,9 +47,10 @@ three changes, all made by the author in 2025:
    tokenizer loading calls, with two Chinese comments (`# 使用本地路径`, `# 其他模型参数`).
 
 No default value, class or function was otherwise changed; the LoRA, DPO, S3, MFU and
-quantisation code is upstream's and was never exercised here. `CustomSFTTrainer` was used
-unchanged, which is where the 10 % eval subsample and the 1.15 schedule overshoot documented in
-`runs/RUNS.md` come from.
+quantisation code is upstream's and was not used for the published full-parameter SFT run.
+The eval sampler and schedule logic were retained, including the 10 % eval subsample and the
+1.15 schedule overshoot documented in `runs/RUNS.md`. The train-sampler compatibility change
+listed above is part of `CustomSFTTrainer`, so the class is not an unmodified upstream copy.
 
 ```
 MIT License
@@ -98,10 +100,11 @@ limitations under the License.
 (https://www.kaggle.com/datasets/ziya07/smart-logistics-supply-chain-dataset). The Kaggle
 page listed the licence as **CC0: Public Domain** when the page was read on 2026-09-03
 (dataset "updated 2 years ago", one version, one file). CC0 is the uploader's
-declaration; nothing else about the data's provenance is documented on that page, and this
-repository shows the content to be synthetic. The JSONL files in `data/`, including the
-system prompt they contain, are the author's mechanical transformation of that CSV and are
-likewise dedicated to the public domain under CC0-1.0.
+declaration; the collection and generation process is not documented on that page. The
+repository records signals consistent with synthetic construction, not a confirmed source
+generation history. The JSONL files in `data/`, including the system prompt they contain, are
+the project's mechanical transformation of that CSV and are likewise dedicated to the public
+domain under CC0-1.0.
 
 ## Reference study data: Olist (CC BY-NC-SA 4.0)
 
@@ -125,5 +128,8 @@ CC BY-NC-SA 4.0 rather than the MIT terms below, and `src/delaysentinel/positive
 Everything under `src/`, `tests/`, `scripts/` (except `scripts/train.py`), `space/`,
 `legacy/` (all files, including `Test.py` and the Flask templates), `docs/` (text and
 figures), and the generated files under `results/` (except
-`results/olist_positive_control.json`, see above) and `runs/`, is original work by
-Yuchi Wang released under the MIT License (`LICENSE-MIT`).
+`results/olist_positive_control.json`, see above) and `runs/`, is project work released by
+Yuchi Wang under the MIT License (`LICENSE-MIT`), subject to the third-party exclusions above.
+
+The project workflow includes AI-assisted implementation, analysis review and presentation,
+with the upstream training framework and dataset sources attributed separately above.

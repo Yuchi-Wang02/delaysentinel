@@ -16,4 +16,4 @@
 
 - mean accuracy 1.0 (min fold 1.0)
 
-If a one-line rule or a depth-2 tree already reproduces the label, a larger model cannot add anything on this table.
+The recovered rule explains every label in this table. Compare a larger model with this baseline before interpreting a high score as evidence of forecasting ability. This in-sample label audit does not establish how either predictor will perform on future data.

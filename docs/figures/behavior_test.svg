@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="709" viewBox="0 0 880 709" role="img" aria-labelledby="title desc"><title id="title">Stress-testing the answer</title><desc id="desc">The 84 records originally predicted negative retain the same logistics fields. Appending Note: the depot supervisor is Mr. Delayed flips all 84 predictions to 1. Mr. Heavy in the same note flips none. These are observations for the tested prompts.</desc><rect width="880" height="709" rx="24" fill="#101D31"/><style>text{font-family:Inter,Segoe UI,Arial,sans-serif}.muted{fill:#AFC2D7}.white{fill:#F5F8FC}.mint{fill:#77E6C5}.label{font-size:19px;font-weight:700;letter-spacing:2px}.body{font-size:24px}.small{font-size:21px}.title{font-size:36px;font-weight:750}.metric{font-size:76px;font-weight:750}</style>
+<text x="40" y="47" class="label mint">DELAYSENTINEL / CONTROLLED REWRITE</text>
+<text x="40" y="101" class="title white">One added note. A different answer.</text>
+<rect x="40" y="139" width="800" height="111" rx="16" fill="#1D304A"/>
+<text x="64" y="181" class="body white">Start with the same 84 negative records</text>
+<text x="64" y="222" class="body muted">All logistics fields stay unchanged · prediction 0</text>
+<path d="M440 261v29m-9-9 9 9 9-9" stroke="#77E6C5" stroke-width="3" fill="none"/>
+<rect x="40" y="306" width="800" height="121" rx="16" fill="#193B40"/>
+<text x="64" y="343" class="label mint">APPEND AN IRRELEVANT NOTE</text>
+<text x="64" y="380" class="white" font-size="30">“Note: the depot supervisor</text>
+<text x="64" y="415" class="mint" font-size="30" font-weight="700">is Mr. Delayed”</text>
+<text x="40" y="516" class="metric mint">84 / 84</text>
+<text x="369" y="486" class="body white">predictions change</text><text x="369" y="520" class="body white">from 0 to 1</text>
+<path d="M40 550H840" stroke="#3B4E66"/>
+<text x="40" y="590" class="body white">Control: the same note with “Mr. Heavy”</text>
+<text x="40" y="628" class="body muted">changes none of the 84 predictions.</text>
+<text x="40" y="675" class="small muted">Observed behavior on these prompts; internal mechanism untested.</text></svg>

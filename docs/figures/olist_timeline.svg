@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="640" viewBox="0 0 880 640" role="img" aria-labelledby="title desc"><title id="title">A separate study on real orders</title><desc id="desc">Classical models on Olist use information available at checkout. Training orders were delivered before March 1, 2018; test orders were purchased on or after that date. Orders crossing the split are excluded. This study does not evaluate the Llama checkpoint.</desc><rect width="880" height="640" rx="24" fill="#101D31"/><style>text{font-family:Inter,Segoe UI,Arial,sans-serif}.muted{fill:#AFC2D7}.white{fill:#F5F8FC}.mint{fill:#77E6C5}.label{font-size:19px;font-weight:700;letter-spacing:2px}.body{font-size:24px}.small{font-size:21px}.title{font-size:36px;font-weight:750}.metric{font-size:76px;font-weight:750}</style>
+<text x="40" y="47" class="label mint">OLIST / CLASSICAL MODEL REFERENCE STUDY</text>
+<text x="40" y="101" class="title white">Define the prediction before fitting it.</text>
+<text x="40" y="148" class="body muted">Inputs available at checkout → later delivery outcome</text>
+<rect x="40" y="192" width="386" height="191" rx="16" fill="#1D304A"/>
+<rect x="454" y="192" width="386" height="191" rx="16" fill="#193B40"/>
+<text x="64" y="235" class="label muted">TRAIN</text><text x="64" y="282" class="white" font-size="30">Orders delivered</text><text x="64" y="318" class="white" font-size="30">before the cutoff</text><text x="64" y="357" class="small muted">Labels already observable</text>
+<text x="478" y="235" class="label mint">TEST</text><text x="478" y="282" class="white" font-size="30">Orders purchased</text><text x="478" y="318" class="white" font-size="30">on or after the cutoff</text><text x="478" y="357" class="small muted">A later prediction period</text>
+<path d="M64 423H816m-12-8 12 8-12 8M440 407v32" stroke="#77E6C5" stroke-width="3" fill="none"/>
+<text x="440" y="477" text-anchor="middle" class="body white">Cutoff: March 1, 2018</text>
+<text x="40" y="529" class="small muted">Orders crossing the split are excluded; delivered-order selection</text>
+<text x="40" y="559" class="small muted">and probability calibration are examined in the study.</text>
+<text x="40" y="605" class="small white">Separate dataset and models · does not evaluate the Llama checkpoint</text></svg>

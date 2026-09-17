@@ -7,6 +7,10 @@ holds the run's `training_config.json` (exported from `training_args.bin`) and t
 (names, sizes, hashes and timestamps of the two TensorBoard event files, which are not
 committed).
 
+The runs used full-parameter updates rather than LoRA adapters. `scripts/train.py` comes from
+acon96/home-llm with the three project-specific modifications recorded in
+[`THIRD_PARTY_LICENSES.md`](../THIRD_PARTY_LICENSES.md).
+
 | run | epochs | steps | eval loss first → min → last (×1e-6) | first log point with loss 0.0000 (epoch) | published | `model.safetensors` sha256 | `training_args.bin` sha256 |
 | --- | ---: | ---: | --- | --- | --- | --- | --- |
 | `sc904` | 30 | 1,500 | 5.23 → 3.00 (step 1000) → 3.05 | 50 (1.0) | **yes** | `ffc509c65c539157905ccc5e469b1b37e30fe816aa9130477f57f0a3dfc2cd47` | `ec88943195fe977963f3c4552a550160471710cf35375b186c26c9d38b3fb8ae` |
@@ -26,7 +30,7 @@ logging every 5 steps. The `transformers` version of the *training* environment 
 `training_args.bin` and no file in this repository records it; the version in
 `results/eval.json` is the 2026 evaluation environment.
 
-## Things the numbers do not show
+## Interpreting the training record
 
 - **Wall-clock.** The command line and the GPU model were not logged. For `sc904` the two
   TensorBoard event files were created 1,090 s apart (`tensorboard_events.json`: first
@@ -55,13 +59,18 @@ logging every 5 steps. The `transformers` version of the *training* environment 
   pad value and `attention_mask = input_ids != eos`, so the genuine `<|eot_id|>` closing the
   system and user turns is masked during training. The assistant-side `<|eot_id|>` stays in
   the loss, so the model still stops.
-- **Why 30 / 65 / 100 epochs.** No record. The published run is the *earliest* (folder
-  dated 2025-09-04), not the one with the lowest eval loss, so the epoch count was not
-  chosen on the test set. No checkpoint before step 1,300 survives, so *when* the lexical
-  shortcut was learned cannot be probed; every probe in `results/eval.json` describes the
-  final step-1,500 weights.
+- **Epoch choice and behavioral evidence.** The archive does not record the rationale for
+  30 / 65 / 100 epochs. The published run is the earliest (folder dated 2025-09-04), and a
+  different run has a lower recorded eval loss; this does not establish the full selection
+  procedure. No checkpoint before step 1,300 survives. The prompt-rewrite results in
+  `results/eval.json` describe the final step-1,500 weights and do not locate when those
+  behaviors emerged during training.
 - **Which base checkpoint.** The training command line was not logged. The published
   `config.json` carries the Instruct `eos_token_id` list `[128001, 128008, 128009]` and the
   repository ships the Instruct `chat_template.jinja`; the base `Llama-3.2-1B` has a single
   eos id and no chat template. The September 2025 card's front-matter `base_model:
   meta-llama/Llama-3.2-1B` was a metadata error.
+
+For the checkpoint's measured outputs and probe conditions, see
+[`docs/evaluation.md`](../docs/evaluation.md). Training-loss values describe optimization on
+this task; they do not establish performance on future delivery outcomes.

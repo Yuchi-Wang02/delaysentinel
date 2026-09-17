@@ -10,7 +10,7 @@ task_categories:
 tags:
 - logistics
 - supply-chain
-- synthetic
+- data-quality
 - label-leakage
 - tabular
 ---
@@ -23,11 +23,26 @@ https://www.kaggle.com/datasets/ziya07/smart-logistics-supply-chain-dataset when
 [`Yuchiwang02/Llama-3.2-1B-DelaySentinel`](https://huggingface.co/Yuchiwang02/Llama-3.2-1B-DelaySentinel)
 was fine-tuned in September 2025.
 
-**Read this before using the label.** `Logistics_Delay` equals
-`Shipment_Status == "Delayed" OR Traffic_Status == "Heavy"` on all 1,000 rows. Any model that
-sees those two columns can score 100%; a depth-2 decision tree does. The table is synthetic
-(coordinates uniform over the globe, uniform numeric columns, a "delay reason" on 318
-non-delayed rows). It is useful as a teaching example of target leakage, not as logistics data.
+## What this dataset makes possible
+
+The frozen files support a reproducible study of label leakage, baseline comparison and model
+behavior. `Logistics_Delay` equals `Shipment_Status == "Delayed" OR Traffic_Status == "Heavy"`
+on all 1,000 rows. A depth-2 decision tree matches the published checkpoint's 100% accuracy on
+the historical 200-row evaluation split. That result establishes agreement with this dataset's
+label rule; forecasting delivery outcomes requires a different target and information available
+before the outcome.
+
+## Source and interpretation
+
+The source does not document how the records or labels were generated. The broad geographic
+spread of coordinates, regular-looking numeric distributions and a delay reason on 318
+label-negative rows are signals consistent with synthetic construction. They do not confirm a
+generation process, and no formal test of uniformity is included. Treat the table as an
+instructional dataset whose operational provenance is unverified.
+
+Rows combine truck status, inventory and customer attributes. There are no promised and actual
+delivery dates, so the status flag cannot establish on-time delivery. In particular, a
+`Delivered` status alone does not say whether a delivery was early, on time or late.
 
 | file | rows | note |
 | --- | ---: | --- |
@@ -39,4 +54,9 @@ non-delayed rows). It is useful as a teaching example of target leakage, not as 
 The JSONL files, including the system prompt they contain, are the author's mechanical
 transformation of the CSV and are dedicated to the public domain under CC0-1.0 as well.
 
-Code, evaluation JSON and probes: https://github.com/Yuchi-Wang02/delaysentinel
+The first 20 evaluation rows contributed to eval loss during training. The split is preserved
+for checkpoint analysis; it is not a fresh, untouched test set. [SPLIT.md](SPLIT.md) records the
+hashes and the historical procedure.
+
+Code, saved results and model-behavior tests:
+[DelaySentinel on GitHub](https://github.com/Yuchi-Wang02/delaysentinel).

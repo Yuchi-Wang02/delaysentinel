@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Fail if a documentation file quotes a number that no committed result file contains.
 
-What this checks: every number in README.md, docs/case_study*.md, data/SPLIT.md,
-data/DATASET_CARD.md, runs/RUNS.md and CHANGELOG.md (outside YAML front-matter, fenced
+What this checks: numbers in the landing page, model card, technical documentation,
+case studies, dataset and run documentation, and changelog (outside YAML front-matter, fenced
 code blocks and URLs) must appear either as a numeric leaf of ``results/*.json`` or
 ``runs/sc904/tensorboard_events.json``, as one of a few named keys of
 ``runs/*/training_config.json``, as a summary value derived from ``runs/*/trainer_state.json``,
@@ -31,6 +31,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = [
     ROOT / "README.md",
+    ROOT / "MODEL_CARD.md",
+    ROOT / "docs" / "evaluation.md",
+    ROOT / "docs" / "olist_reference.md",
+    ROOT / "docs" / "reproduce.md",
     ROOT / "docs" / "case_study.md",
     ROOT / "docs" / "case_study.zh.md",
     ROOT / "docs" / "leakage_audit.md",
@@ -197,12 +201,12 @@ def allowlist() -> set[str]:
 
 def check(docs: list[Path] | None = None, known: set[str] | None = None) -> list[tuple[str, str, str]]:
     """Return ``(doc, token, line)`` for every number that is not backed."""
-    docs = docs or DOCS
+    docs = DOCS if docs is None else docs
     known = known if known is not None else (known_numbers() | allowlist())
     missing: list[tuple[str, str, str]] = []
     for doc in docs:
-        if not doc.exists():
-            continue
+        if not doc.is_file():
+            raise FileNotFoundError(f"required documentation file is missing: {doc}")
         text = strip_markdown(doc.read_text(encoding="utf-8"))
         for line in text.splitlines():
             for m in NUM_RE.finditer(line):

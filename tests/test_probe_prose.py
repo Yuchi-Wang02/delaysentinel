@@ -11,7 +11,16 @@ import re
 
 import pytest
 
-DOCS = ["README.md", "docs/case_study.md"]
+DETAIL_DOC = "docs/evaluation.md"
+DOCS = [DETAIL_DOC]
+PUBLIC_DOCS = [
+    "README.md",
+    "MODEL_CARD.md",
+    DETAIL_DOC,
+    "docs/olist_reference.md",
+    "docs/case_study.md",
+    "docs/case_study.zh.md",
+]
 
 
 def _flat(text):
@@ -22,8 +31,7 @@ def _flat(text):
 @pytest.fixture
 def probes(root):
     path = root / "results" / "eval.json"
-    if not path.exists():
-        pytest.skip("results/eval.json is not present")
+    assert path.is_file(), "the committed probe evidence is required"
     return json.loads(path.read_text(encoding="utf-8"))["robustness_probe"]
 
 
@@ -39,7 +47,7 @@ def test_control_words_sit_at_the_baseline_in_shipment_status(root, probes):
     counts = _control(probes, "Shipment_Status")
     assert len(counts) == 12
     assert len(set(counts.values())) == 1, f"not all 12 are identical: {counts}"
-    text = _flat((root / "README.md").read_text(encoding="utf-8"))
+    text = _flat((root / DETAIL_DOC).read_text(encoding="utf-8"))
     assert "all 12 give exactly the 23 baseline rows" in text
     assert "11 of 12 give exactly" not in text, "the Shipment_Status cell claims an exception the JSON does not have"
 
@@ -113,7 +121,7 @@ def test_values_fire_without_containing_the_trigger(probes):
     )
 
 
-@pytest.mark.parametrize("doc", ["README.md", "docs/case_study.md", "docs/case_study.zh.md"])
+@pytest.mark.parametrize("doc", PUBLIC_DOCS)
 def test_no_public_document_asserts_a_string_match(root, doc):
     text = _flat((root / doc).read_text(encoding="utf-8"))
     for phrase in STRING_MATCH_PHRASES:

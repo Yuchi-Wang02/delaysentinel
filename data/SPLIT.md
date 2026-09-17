@@ -1,5 +1,9 @@
 # Frozen historical split v0
 
+These files preserve the data used to train and evaluate the published checkpoint. Their
+hashes let readers reproduce the same comparison, while the history below identifies which
+rows were exposed during training-time evaluation.
+
 | file | rows | positive rate | sha256 (newline-normalized bytes) |
 | --- | ---: | ---: | --- |
 | `smart_logistics_dataset.csv` | 1,000 | 0.566 | `e5d080a1d64f15713f000be403a44d4ad329cbece11a0523a8c186406a6ed7a6` |
@@ -25,7 +29,7 @@ values.
 permutation of what step 1 produces from the CSV, so the frozen files are a faithful
 image of the source data even though the shuffle itself cannot be replayed.
 
-## Rules
+## Evaluation scope
 
 - **Do not re-split.** The published weights were trained on these 800 rows; a new split
   would move training rows into the test set.
@@ -35,9 +39,10 @@ image of the source data even though the shuffle itself cannot be replayed.
 - During training, `train.py` also received `test.jsonl` as the Trainer `eval_dataset`.
   The upstream `CustomSFTTrainer` evaluated a 10% subset every 200 steps and, because it
   wraps `SequentialSampler(Subset(...))`, that subset is the first 20 rows of the file. Those
-  20 rows were therefore used for eval loss during training (forward pass only: no
-  gradient, no metric, no hyper-parameter chosen on them); the other 180 were never
-  touched. Treat the file as unblinded rather than as a clean test set.
+  20 rows were therefore used for eval loss during training, without gradient updates. The
+  sampler did not evaluate the other 180 rows. The archived records contain no separate
+  validation set or documented hyperparameter-selection procedure. Treat this historical
+  file as an exposed evaluation split, not a fresh test set.
 - `python -m delaysentinel.transform split data/all.jsonl --seed N` exists for future
   experiments only.
 
@@ -46,5 +51,7 @@ image of the source data even though the shuffle itself cannot be replayed.
 The Kaggle page (https://www.kaggle.com/datasets/ziya07/smart-logistics-supply-chain-dataset)
 listed the licence as **CC0: Public Domain** when it was read on 2026-09-03 (dataset "updated
 2 years ago", one version, one 106 KB file). That is the uploader's declaration; nothing else
-about provenance is documented there. The derived JSONL files are dedicated to the public
-domain under CC0-1.0 as well (`THIRD_PARTY_LICENSES.md`).
+about the collection or generation process is documented there. The derived JSONL files are
+dedicated to the public domain under CC0-1.0 as well (`THIRD_PARTY_LICENSES.md`). See
+[the dataset card](https://huggingface.co/datasets/Yuchiwang02/smart-logistics-delay-split-v0)
+for the observed data-quality signals and label interpretation.

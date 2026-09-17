@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="680" viewBox="0 0 880 680" role="img" aria-labelledby="title desc"><title id="title">A perfect score, explained</title><desc id="desc">Llama and a depth-2 decision tree both achieve 100 percent accuracy on the same historical 200-row split. An OR-rule reconstructs all 1,000 source labels. The split includes training-time evaluation rows; these scores do not establish forecasting ability.</desc><rect width="880" height="680" rx="24" fill="#101D31"/><style>text{font-family:Inter,Segoe UI,Arial,sans-serif}.muted{fill:#AFC2D7}.white{fill:#F5F8FC}.mint{fill:#77E6C5}.label{font-size:19px;font-weight:700;letter-spacing:2px}.body{font-size:24px}.small{font-size:21px}.title{font-size:36px;font-weight:750}.metric{font-size:76px;font-weight:750}</style>
+<text x="40" y="47" class="label mint">DELAYSENTINEL / BASELINE COMPARISON</text>
+<text x="40" y="101" class="title white">A perfect score, explained</text>
+<text x="40" y="139" class="body muted">Same historical split. A simpler explanation.</text>
+<rect x="40" y="173" width="386" height="175" rx="16" fill="#1D304A"/>
+<rect x="454" y="173" width="386" height="175" rx="16" fill="#1D304A"/>
+<text x="64" y="214" class="body white">Llama fine-tune</text><text x="64" y="301" class="metric white">100%</text>
+<text x="478" y="214" class="body white">Depth-2 decision tree</text><text x="478" y="301" class="metric mint">100%</text>
+<text x="40" y="387" class="small muted">Accuracy on the same 200 records · saved evaluation results</text>
+<rect x="40" y="418" width="800" height="117" rx="16" fill="#193B40"/>
+<text x="64" y="455" class="label mint">THE LABEL RULE</text>
+<text x="64" y="493" class="body white">Shipment: Delayed  OR  Traffic: Heavy → label 1</text>
+<text x="40" y="578" class="body white">This rule reproduces all 1,000 source labels.</text>
+<text x="40" y="615" class="small muted">Historical split includes training-time evaluation rows.</text>
+<text x="40" y="645" class="small muted">Input-recoverable labels do not establish advance forecasting.</text></svg>
+
